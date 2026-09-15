@@ -36,10 +36,22 @@ The target experience is the polished SnowBunny/Tavo direction already discussed
 
 ### Top menu
 
-- Replace/reorganize SillyTavern’s usual top-row buttons into a cleaner, properly labeled, Novelcrafter-inspired horizontal top menu.
-- Add **Codex** to that top menu.
+The top menu is a clean Novelcrafter-inspired horizontal strip. It reorganizes useful top-level SillyTavern destinations instead of reproducing the stock icon pile.
+
+Settled destinations/behavior so far:
+
+1. **Round book button** — first item. Leaves the current Story/chat workspace and returns to the visual Stories selector. This intentionally duplicates a route available through the left drawer, like Novelcrafter.
+2. **Cog / AI Response Configuration** — opens the response-generation configuration. Keep the cog metaphor rather than replacing it with a vague “Generation” label.
+3. **Codex** — opens the Novelcrafter-style workspace for the lorebook(s) bound to the current Story/chat.
+4. **Appearance / Backgrounds & Themes** — keep this as a top-level workspace rather than burying it in the right Current Chat drawer. It may combine the useful parts of SillyTavern’s Backgrounds and UI-theme/styling surfaces into one SnowBunny presentation workspace.
+
+Still to settle after these: Extensions, Personas, Characters, their exact order/labels/icons, and whether any other stock top-level destination genuinely deserves a slot.
+
+Additional rules:
+
 - Do not turn the top menu into a dumping ground for every SnowBunny feature.
 - The top menu should support the polished mobile behavior already discussed, including retracting while reading when appropriate.
+- API does not automatically need a top slot merely because stock SillyTavern has one; global API access already exists in the left Library and the current model belongs at the top of the right drawer.
 
 ### Left drawer = global Library
 
@@ -71,13 +83,14 @@ This is where the current chat’s active setup lives.
 - Preset / prompts.
 - Memory.
 - Regex.
-- Chat appearance / theme.
 - Agents / trackers.
 - AI tools.
 - CYOAs.
 - Scenario.
 - Preserve bottom utilities such as Reset Chat, Chat Statistics and Search in Chat.
 - Sections below Model remain reorderable where appropriate.
+
+Appearance / backgrounds / themes do **not** need a duplicate right-drawer entry if the top Appearance workspace owns that job.
 
 Do not move Story setup into the Story browser itself. Current Story/chat setup belongs here.
 
@@ -306,7 +319,7 @@ Exact ST integration is still to be designed.
 
 ## Still open / to settle before coding resumes
 
-- Exact top-menu destinations, labels and order based on SillyTavern’s current top buttons plus Codex.
+- Remaining top-menu destinations after Book → AI Response Configuration → Codex → Appearance, especially Extensions, Personas and Characters; exact labels/icons/order.
 - Exact left-drawer order/details and Create sheet behavior.
 - Exact right-drawer ordering and Story-vs-chat inheritance presentation.
 - Exact Story browsing/card layout.
