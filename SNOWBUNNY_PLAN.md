@@ -64,14 +64,15 @@ Main content, top to bottom:
 - **Lorebooks** — global lorebook library, not merely the lorebooks bound to the current Story.
 - **Stand-alone Chats** — only chats that genuinely do not belong to a Story.
 - Prominent **Create** action.
-- **Characters** — global Character library and editing.
-- **Personas** — global Persona library and editing.
 
-Bottom utility area:
+Bottom quick-action row, left to right:
 
-- **Creator assistant** gets its own small button at the bottom-left of the drawer. Creator is an assistant/workflow, not a library resource and not a normal list row.
-- **…** is the app/settings button. It opens the SnowBunny settings area inherited/refined from the app. Do not present this as a text row called “More.”
-- API is not duplicated here; API lives in the top strip.
+1. **Creator assistant** — the far-left small button. Creator is an assistant/workflow, not a library resource or normal navigation row.
+2. **Characters** — global Character library and editing.
+3. **Personas** — global Persona library and editing.
+4. **…** — the app/settings button. It opens the SnowBunny settings area inherited/refined from the app. Do not present this as a text row called “More.”
+
+API is not duplicated here; API lives in the top strip.
 
 Important rules:
 
@@ -347,7 +348,7 @@ Exact ST integration is still to be designed.
 ## Still open / to settle before coding resumes
 
 - Exact icons/labels and visual treatment of the now-set top-menu order: Book → Cog → API → Codex → Appearance → Extensions.
-- Exact left-drawer visual details and Create sheet behavior, including final bottom utility styling for Creator and `…` Settings.
+- Exact left-drawer visual details and Create sheet behavior; placement of the bottom quick-action row is settled as Creator → Characters → Personas → `…` Settings.
 - Exact right-drawer ordering and Story-vs-chat inheritance presentation.
 - Exact Story browsing/card layout.
 - Exact Codex workspace behavior when one vs several lorebooks are bound.
