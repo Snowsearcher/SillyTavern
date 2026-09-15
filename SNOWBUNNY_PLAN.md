@@ -169,25 +169,26 @@ SnowBunny can make these sheets richer than Tavo, especially for Characters, Per
 
 ## Story-level data versus chat-level data
 
-Do not assume every current-chat setting automatically inherits from a Story.
+This is settled and intentionally narrow.
 
-The phrase `Story inheritance / chat override` only means: if a Story owns some shared setup, does every chat use it by default, and can one chat add/change something for itself?
+A **Story owns only two shared fiction systems**:
 
-Only one case is currently settled:
+1. **Lorebooks** — Story bindings form the shared/base Lorebook set. A chat inside the Story may add extra Lorebooks for itself.
+2. **Memories** — accepted MemoryMaker history belongs to the Story as a whole and is shared across that Story’s chats.
 
-- **Lorebooks:** Story bindings form the shared/base set; a chat may add extra Lorebooks.
+Everything else is **chat-dependent**. It is not inherited from the Story and the Story does not provide defaults for it:
 
-Not yet settled as Story-inherited settings:
-
+- Persona
+- Added Characters / cast
 - Model
 - Preset
-- Persona
+- Scenario
 - Regex
 - Agents
 - CYOA
 - AI Tools
 
-Scenario and Memory have their own Story/chat ownership questions and must be settled deliberately rather than assumed.
+Do **not** build a generic `Story default → chat override` system for those features. The Story is not a settings preset for its chats. Its shared continuity is the Story Lorebooks plus the Story-wide Memory collection; the rest belongs to each chat.
 
 This is an underlying data rule, not another menu section.
 
@@ -201,6 +202,7 @@ This is an underlying data rule, not another menu section.
 - Search/tags should be available if useful for a large Story.
 - The left drawer gives quick access only to the three most recent chats. Older Story chats are intentionally reached through the Story.
 - Stand-alone chats remain separate from Story chats.
+- Story-wide fiction data is limited to **Lorebooks and Memories**. Do not turn a Story into a container for Model, Preset, Persona, Scenario, Regex, Agents, CYOA or AI Tools.
 - Story setup should not be dumped into the Story browsing page. The Story page is primarily for browsing/managing the Story and its chats.
 
 Open design item: exact Story card/chat-card layout and what lightweight metadata is shown on the Story page.
@@ -349,6 +351,7 @@ Exact implementation against SillyTavern is still to be designed.
 
 - Preserve the custom reviewed-memory philosophy rather than replacing it with a stock summarizer.
 - Memories are historical events, separate from current trackers.
+- For Story-bound chats, accepted Memories belong to the **Story-wide Memory collection** and are available across that Story’s chats.
 - Support reviewed create/edit/merge/delete proposals and source validation.
 - Editing old history must not leave stale memories silently treated as current truth.
 
@@ -356,7 +359,8 @@ Exact implementation against SillyTavern is still to be designed.
 
 - Preserve the four-field concept: premise, focus, writer-only knowledge, important directions.
 - Helper remains optional.
-- Scope/ownership must follow the final Story vs standalone-chat model rather than inventing hidden fake Stories just to own data.
+- **Scenario is chat-dependent.** Do not make it a Story-level default or inherited Story setting.
+- Stand-alone chats should not require hidden fake Stories merely to own their Scenario.
 
 ## View Context
 
@@ -428,10 +432,9 @@ Exact ST integration is still to be designed.
 - Exact icons/labels and visual treatment of the now-set top-menu order: Book → Cog → API → Codex → Appearance → Extensions.
 - Exact left-drawer visual details and Create sheet behavior; placement of the bottom quick-action row is settled as Creator → Characters → Personas → `…` Settings.
 - Right-drawer order is now settled; exact per-row sheet/editor presentation can still be refined.
-- Story-level ownership/default rules for settings other than the already-set Lorebook behavior.
 - Exact Story browsing/card layout.
 - Exact Codex workspace behavior when one versus several Lorebooks are bound.
-- Final Story ownership model, especially truly standalone chats versus Story-bound chats.
+- Final Story ownership model around truly standalone chats versus Story-bound chats.
 - Final structured-data schema and exact AI wrapper syntax.
 - Final mapping from SnowBunny structured Character/Persona data to standard SillyTavern fields.
 - Context Broker ordering, deduplication and fitting rules.
