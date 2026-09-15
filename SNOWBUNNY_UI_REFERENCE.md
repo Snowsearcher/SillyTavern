@@ -11,7 +11,69 @@ This file records visual/interaction decisions taken from screenshots and UI ref
 - Place a **+** button beside the Persona selector. This opens the Character/cast selector and adds Characters to the current chat.
 - The Character selector should preserve SnowBunny's intended visual picker: artwork/cards, search/filtering/favorites where useful, and multi-select/add-to-chat behavior.
 - Global Character/Persona management remains in the left Library bottom quick-action row. The right-drawer controls are for choosing what the current Story/chat uses.
-- Narrator treatment is **unresolved**. Do not force the old SnowBunny Narrator control into the layout until its role is designed properly for this fork.
+
+### Narrator
+
+Narrator is **not** a separate right-drawer system/settings row.
+
+Narrator is intended to be a **stock Character** that can be used for chats where the actual cast already lives in Lorebook/Codex Character entries. It gives the chat a neutral assistant/speaking identity without requiring one of the lorebook characters to be the primary SillyTavern Character.
+
+Direction:
+
+- Treat Narrator through the Character/cast architecture rather than inventing a separate narrator subsystem.
+- Make Narrator available from the normal Character-add flow.
+- Keep its authored card minimal and neutral so it does not compete with the Lorebook characters it is narrating.
+- Exact visibility/default behavior of the stock Narrator in the global Character library is still to be settled.
+
+### Settled right-drawer order
+
+After the Persona selector + `+` Add Character top area, the main rows are:
+
+1. **Model**
+2. **Preset**
+3. **Lorebooks**
+4. **Scenario**
+5. **Regex**
+6. **Memory**
+7. **Agents**
+8. **CYOA**
+9. **AI Tools**
+
+There is **no separate Prompts row**. Prompt editing/configuration belongs to Preset.
+
+There is **no separate State / Tracker Summaries row**. That was an unnecessary planning placeholder. Tracker state/output belongs with the Agent/tracker system and/or the places where that state is actually displayed or audited, rather than becoming another right-drawer category.
+
+Bottom utilities such as **Reset Chat**, **Chat Statistics** and **Search in Chat** remain conceptually separate/pinned at the bottom.
+
+### Model row behavior
+
+Model is a fast current-chat selector, not the full global API management screen.
+
+- One tap opens the model selector.
+- Show the user's **favorite models first** for fast switching.
+- Include search so the user can choose any other model available through the configured API/provider connections.
+- Selection applies to the current chat's model choice.
+- Full provider/API/key/catalog management remains in the top-menu API workspace.
+
+### Preset row behavior
+
+Preset is the current chat's writing/prompt preset.
+
+- One tap opens the preset selector/manager.
+- Preset contains the prompt/module configuration. Do not create a second `Prompts` row.
+- Preserve the richer SnowBunny preset editing direction: modules/toggles, editing controls, reorderability where supported, and import/export compatibility.
+- The quick row should still make changing the active preset fast; deeper editing can open from the selector/manager.
+
+### Lorebooks row behavior and Story relationship
+
+Lorebooks can be assigned at Story level, but an individual chat may need additional Lorebooks.
+
+Therefore the Current Chat Lorebooks row remains useful even when the Story already has bound Lorebooks.
+
+- Story-bound Lorebooks are part of the chat's inherited setup.
+- The chat may add chat-specific Lorebooks on top of those Story bindings.
+- The selector must make the effective Lorebooks for the chat understandable without pretending Story inheritance does not exist.
+- Exact inherited-vs-chat-added visual treatment is still to be settled.
 
 ### Tavo selector interaction to preserve
 
@@ -55,29 +117,19 @@ Use this Tavo-style quick-sheet interaction for things whose normal job is prima
 
 - Persona
 - Character/cast addition
-- current model where appropriate
+- Model
 - Preset
 - assigned Lorebooks
 - Regex
 - Agents or Agent sets where selection is the normal action
 - other future selectable resources when the same interaction genuinely fits
 
-Do **not** mechanically force every complex system into this pattern. Some destinations may need their own full editor/workspace after the quick selection step.
-
-### Right-drawer ordering status
-
-Only the following placement is currently settled:
-
-- Top area: Persona selector + adjacent `+` Add Character button.
-- Bottom utilities remain conceptually separate/pinned where appropriate.
-- Appearance/background/theme controls stay out of the right drawer because Appearance is a top-menu workspace.
-- Global API/provider management stays in the top menu. A current-chat model selector may still exist in the drawer, but its exact position is **not** settled.
-- The order of Preset, Lorebooks, Regex, MemoryMaker, Scenario, Agents, AI tools, CYOA and other Current Chat rows is still being discussed.
+Do **not** mechanically force every complex system into this pattern. Scenario, Memory, Agents, CYOA and AI Tools may open their own purpose-built screens/sheets where their job is more than simple selection.
 
 ## Visual quality notes from the reference
 
 - Favor large rows/cards over tiny controls.
 - Use clear spacing and section separators rather than dense ST-style control piles.
 - Bottom sheets should feel deliberate and native on mobile: rounded top corners, strong hierarchy, obvious selected state, smooth slide animation and dimmed background context.
-- Selection should be fast enough that changing a Lorebook, Regex resource, Persona or similar current-chat resource feels like a couple of taps, not configuration work.
+- Selection should be fast enough that changing a Lorebook, Regex resource, Persona, Model, Preset or similar current-chat resource feels like a couple of taps, not configuration work.
 - SnowBunny can make the selectors visually richer than Tavo, especially for Characters, Personas and image-bearing resources, while preserving Tavo's speed and simplicity.
