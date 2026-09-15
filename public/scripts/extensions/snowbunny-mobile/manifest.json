@@ -1,0 +1,14 @@
+{
+    "display_name": "SnowBunny Mobile",
+    "loading_order": 1,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "Snow",
+    "version": "0.1.0",
+    "homePage": "https://github.com/Snowsearcher/SillyTavern",
+    "hooks": {
+        "activate": "init"
+    }
+}
