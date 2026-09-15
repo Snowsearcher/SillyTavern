@@ -1,0 +1,63 @@
+/*
+ * SnowBunny mobile shell, milestone 1.
+ *
+ * This first pass deliberately changes one interaction only: message actions.
+ * The existing SillyTavern composer and extension controls remain untouched.
+ */
+
+@media screen and (max-width: 1000px) {
+    body.snowbunny-mobile #chat .mes {
+        position: relative;
+    }
+
+    body.snowbunny-mobile #chat .mes > .mes_block > .mes_buttons {
+        display: none;
+    }
+
+    body.snowbunny-mobile #chat .mes.snowbunny-message-selected > .mes_block > .mes_buttons {
+        position: absolute;
+        z-index: 40;
+        top: 0.5rem;
+        right: 0.5rem;
+        display: flex !important;
+        align-items: center;
+        gap: 0.2rem;
+        max-width: calc(100% - 1rem);
+        padding: 0.35rem;
+        border: 1px solid var(--SmartThemeBorderColor);
+        border-radius: 0.75rem;
+        background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 92%, transparent);
+        box-shadow: 0 0.35rem 1rem rgb(0 0 0 / 28%);
+        backdrop-filter: blur(calc(var(--SmartThemeBlurStrength) * 1.5));
+        -webkit-backdrop-filter: blur(calc(var(--SmartThemeBlurStrength) * 1.5));
+    }
+
+    body.snowbunny-mobile #chat .mes.snowbunny-message-selected > .mes_block > .mes_buttons .extraMesButtons {
+        display: flex !important;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.2rem;
+    }
+
+    body.snowbunny-mobile #chat .mes.snowbunny-message-selected > .mes_block > .mes_buttons .extraMesButtonsHint {
+        display: none !important;
+    }
+
+    body.snowbunny-mobile #chat .mes.snowbunny-message-selected > .mes_block > .mes_buttons .mes_button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.55rem;
+        min-height: 2.55rem;
+        margin: 0;
+        padding: 0.55rem;
+        border-radius: 0.6rem;
+        font-size: 1rem;
+        line-height: 1;
+        touch-action: manipulation;
+    }
+
+    body.snowbunny-mobile #chat .mes.snowbunny-message-selected > .mes_block > .mes_buttons .mes_button:active {
+        background: rgb(255 255 255 / 12%);
+    }
+}
