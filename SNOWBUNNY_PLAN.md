@@ -41,9 +41,9 @@ Settled order:
 
 1. **Round book button** — leaves the current Story/chat workspace and returns to the visual Stories selector. This intentionally duplicates a route available through the left drawer, like Novelcrafter.
 2. **Cog / AI Response Configuration** — opens response-generation configuration.
-3. **API** — global API/provider/connection/model-catalog management. The right drawer’s Model row remains the fast current-chat model selector; that is a different job.
-4. **Codex** — opens the Novelcrafter-style workspace for the lorebook(s) bound to the current Story/chat.
-5. **Appearance / Backgrounds & Themes** — owns backgrounds and the useful UI/theme styling controls rather than duplicating those in the right drawer.
+3. **API** — global API/provider/connection/model-catalog management. The right drawer’s Model row is only the fast current-chat model selector.
+4. **Codex** — opens the Novelcrafter-style workspace for the Lorebook(s) bound to the current Story/chat.
+5. **Appearance / Backgrounds & Themes** — owns backgrounds and useful UI/theme styling controls rather than duplicating those in the right drawer.
 6. **Extensions** — extension management/settings. Individual extension actions used while writing remain reachable from the composer/text bar.
 
 Characters and Personas do **not** belong in the top strip. Their global libraries are on the left and current-chat selection belongs on the right.
@@ -61,16 +61,16 @@ Main content, top to bottom:
 
 - **Recent Chats** — exactly the three most recently used chats as visual quick-access cards. If a chat belongs to a Story, quietly show that Story identity.
 - **Stories** — opens the visual Story selector/browser.
-- **Lorebooks** — global lorebook library, not merely the lorebooks bound to the current Story.
+- **Lorebooks** — global Lorebook library, not merely the Lorebooks bound to the current Story.
 - **Stand-alone Chats** — only chats that genuinely do not belong to a Story.
 - Prominent **Create** action.
 
 Bottom quick-action row, left to right:
 
-1. **Creator assistant** — the far-left small button. Creator is an assistant/workflow, not a library resource or normal navigation row.
+1. **Creator assistant** — far-left small button. Creator is an assistant/workflow, not a library resource or normal navigation row.
 2. **Characters** — global Character library and editing.
 3. **Personas** — global Persona library and editing.
-4. **…** — the app/settings button. It opens the SnowBunny settings area inherited/refined from the app. Do not present this as a text row called “More.”
+4. **…** — app/settings. This opens the SnowBunny settings area inherited/refined from the app. Do not label it `More`.
 
 API is not duplicated here; API lives in the top strip.
 
@@ -79,7 +79,7 @@ Important rules:
 - Do **not** expose every Story chat globally from the left drawer.
 - To reach an older chat that belongs to a Story, open that Story and browse its chats there.
 - Global Lorebooks belong above Characters because they are broader library-level resources.
-- No separate “Switch Story” item is needed if Stories already opens the Story browser and the round book also returns there.
+- No separate `Switch Story` item is needed if Stories already opens the Story browser and the round book also returns there.
 
 Create sheet resources:
 
@@ -94,30 +94,102 @@ Do not put Creator, Agents, Memories, Regex or other assistants/setup/system obj
 
 Contextual Chat creation direction: while inside a Story, New Chat should default to that Story. Outside a Story, ownership must be explicit rather than silently guessed.
 
-### Right drawer = current chat / Story setup
+### Right drawer = current chat setup
 
-This is where the current chat’s active setup lives.
+The right drawer is a Tavo-inspired launchpad for the current chat. It should favor fast selectors and purpose-built sheets over deep settings pages.
 
-Current ordering direction:
+#### Top area
 
-- Model at the top.
-- Assigned/bound Lorebooks above Characters because they are broader context.
-- Characters / cast.
-- Persona.
-- Preset / prompts.
-- Memory.
-- Regex.
-- Agents / trackers.
-- AI tools.
-- CYOAs.
-- Scenario.
-- Bottom utilities such as Reset Chat, Chat Statistics and Search in Chat.
+- **Persona selector** sits at the top.
+- A **+ Add Character** control sits beside it and opens the visual Character/cast picker.
+- The Character picker uses SnowBunny’s proper image-forward selector with search/filter/favorites and multi-select where useful.
+- Narrator is not a separate settings row. It is a **stock Character** available through the normal Character-add flow for chats where the actual cast already lives in Lorebook/Codex Character entries.
 
-Sections below Model remain reorderable where appropriate.
+#### Settled row order
 
-Appearance/backgrounds/themes do **not** need a duplicate right-drawer entry because the top Appearance workspace owns that job.
+After Persona + `+` Add Character:
 
-Do not move Story setup into the Story browser itself. Current Story/chat setup belongs here.
+1. **Model**
+2. **Preset**
+3. **Lorebooks**
+4. **Scenario**
+5. **Regex**
+6. **Memory**
+7. **Agents**
+8. **CYOA**
+9. **AI Tools**
+
+Pinned/separate bottom utilities:
+
+- Reset Chat
+- Chat Statistics
+- Search in Chat
+
+There is **no separate Prompts row**. Preset and prompt/module configuration are the same area.
+
+There is **no State / Tracker Summaries row**. Tracker state belongs with Agents and with the places where tracker output is actually displayed/audited.
+
+Appearance/backgrounds/themes stay out of the right drawer because the top Appearance workspace owns that job.
+
+#### Model row
+
+- One tap opens a fast model selector.
+- Show favorite models first.
+- Include search for any other model available through configured provider/API connections.
+- This chooses the model for the current chat.
+- Full API/provider/key/catalog management stays in the top API workspace.
+
+#### Preset row
+
+- Preset is the current writing/prompt preset.
+- It owns the prompt/module configuration, toggles, editing and reordering behavior.
+- The row makes switching presets fast; deeper editing opens from its selector/manager.
+
+#### Lorebooks row
+
+- A Story can have bound Lorebooks.
+- A chat inside that Story may add **additional Lorebooks** for itself.
+- The right-drawer Lorebooks row remains useful because it shows/manages what this chat effectively uses.
+- The selector should distinguish the Story’s base bindings from chat-added Lorebooks clearly enough that the user understands why an entry is active.
+
+#### Tavo-style selector behavior
+
+For rows whose normal job is selection/assignment, use the supplied Tavo screenshots as the interaction reference:
+
+- tap row → bottom sheet;
+- large touch targets;
+- current selections visibly highlighted;
+- search where useful;
+- `Apply` for grouped/multi-selection;
+- optional pencil/edit shortcut for editable resources;
+- return directly to the right drawer after applying;
+- no deep modal stacks.
+
+SnowBunny can make these sheets richer than Tavo, especially for Characters, Personas and image-bearing resources, without sacrificing speed.
+
+## Story-level data versus chat-level data
+
+Do not assume every current-chat setting automatically inherits from a Story.
+
+The phrase `Story inheritance / chat override` only means: if a Story owns some shared setup, does every chat use it by default, and can one chat add/change something for itself?
+
+Only one case is currently settled:
+
+- **Lorebooks:** Story bindings form the shared/base set; a chat may add extra Lorebooks.
+
+Not yet settled as Story-inherited settings:
+
+- Model
+- Preset
+- Persona
+- Regex
+- Agents
+- CYOA
+- AI Tools
+
+Scenario and Memory have their own Story/chat ownership questions and must be settled deliberately rather than assumed.
+
+This is an underlying data rule, not another menu section.
 
 ## Stories
 
@@ -129,7 +201,7 @@ Do not move Story setup into the Story browser itself. Current Story/chat setup 
 - Search/tags should be available if useful for a large Story.
 - The left drawer gives quick access only to the three most recent chats. Older Story chats are intentionally reached through the Story.
 - Stand-alone chats remain separate from Story chats.
-- Story setup stays in the right drawer, not on the Story browsing page.
+- Story setup should not be dumped into the Story browsing page. The Story page is primarily for browsing/managing the Story and its chats.
 
 Open design item: exact Story card/chat-card layout and what lightweight metadata is shown on the Story page.
 
@@ -140,8 +212,8 @@ Open design item: exact Story card/chat-card layout and what lightweight metadat
 There are three access contexts for the same underlying Lorebook data:
 
 1. **Global Lorebooks in the left Library** — manage the whole collection.
-2. **Assigned/bound Lorebooks in the right drawer** — choose which lorebooks the current Story/chat uses.
-3. **Codex in the top menu** — the Novelcrafter-style workspace for seeing and editing the lorebook(s) bound to the current Story/chat.
+2. **Assigned/bound Lorebooks in the right drawer** — manage what the current chat effectively uses, including Story bindings plus chat additions.
+3. **Codex in the top menu** — the Novelcrafter-style workspace for seeing and editing the Lorebook(s) bound to the current Story/chat.
 
 Codex is the polished working surface: visual cards, images, entry types, previews, search, grouping, good editing, and Visual/Compact views where useful.
 
@@ -153,8 +225,14 @@ Do not reduce SnowBunny Lorebooks to SillyTavern World Info. ST World Info may b
 - Build SnowBunny’s visual selector, profile/view and editor on top.
 - Selectors should be image-forward, readable and mobile-first: large artwork/cards, search, filters, favorites and good selection UX.
 - Editors keep SnowBunny’s structured/freeform authoring modes and custom fields.
-- A character/persona is not merely one giant description blob. Structured fields are canonical authored data.
-- Global browse/edit belongs in the left Library; selection for the current Story/chat belongs in the right drawer.
+- A Character/Persona is not merely one giant description blob. Structured fields are canonical authored data.
+- Global browse/edit belongs in the left Library; current-chat selection belongs in the right drawer.
+
+### Stock Narrator Character
+
+Narrator is a built-in/stock Character for chats where the actual story characters live as Lorebook/Codex Character entries. It supplies a neutral assistant identity without becoming a separate narrator subsystem or separate right-drawer row.
+
+Exact global-library visibility/default behavior of Narrator remains to be settled.
 
 ## Structured authoring and AI-facing wrappers
 
@@ -165,7 +243,7 @@ Characters, Personas and Character-type Lorebook entries can contain fields such
 The same structured data has different presentations:
 
 - **Snow sees:** the polished structured/freeform editor and visual card.
-- **SillyTavern sees:** a compatible character/persona representation where applicable.
+- **SillyTavern sees:** a compatible Character/Persona representation where applicable.
 - **The AI sees:** a deterministic, strongly bounded serialized block.
 
 Directional wrapper examples:
@@ -212,7 +290,7 @@ Wrapper syntax is not yet frozen, but the requirements are settled:
 - Custom fields preserved.
 - No collision with SillyTavern `{{...}}` macros.
 - No internal database IDs shown to the AI unless there is a genuine technical reason.
-- Linked representations of the same authored character must not be injected twice as conflicting full cards.
+- Linked representations of the same authored Character must not be injected twice as conflicting full cards.
 - Never infer that two entities are the same only because they share a name.
 
 The SnowBunny Authoring Guide must be updated after the final schema/wrapper format is frozen so import/export instructions match the real format.
@@ -248,7 +326,7 @@ Exact wrapper/order/token-fitting rules are still to be designed before implemen
 
 Preserve SnowBunny’s custom retrieval behavior rather than substituting stock ST vectors:
 
-- Per-lorebook keyword or meaning/vector retrieval.
+- Per-Lorebook keyword or meaning/vector retrieval.
 - Recent-story semantic query window.
 - Local embedding cache.
 - Exact name/alias rescue alongside semantic ranking.
@@ -283,12 +361,12 @@ Exact implementation against SillyTavern is still to be designed.
 ## View Context
 
 - Keep it as a first-class per-reply historical receipt/audit view.
-- It should explain what that exact reply received, including model/preset/settings, final input, lore retrieval, memories, trackers, helper calls, attachments and fitting/omission decisions where available.
+- It should explain what that exact reply received, including model/preset/settings, final input, Lorebook retrieval, memories, trackers, helper calls, attachments and fitting/omission decisions where available.
 - Later settings changes must not rewrite an old reply’s receipt.
 
 ## Main mobile UI quality bar
 
-The target is not “SillyTavern but usable on a phone.” It is the polished SnowBunny/Tavo experience.
+The target is not `SillyTavern but usable on a phone.` It is the polished SnowBunny/Tavo experience.
 
 Preserve/recreate:
 
@@ -308,7 +386,7 @@ Preserve/recreate:
 
 - Reuse mature SillyTavern attachment handling where possible.
 - Keep SnowBunny’s distinction between chat-owned attachments and a global Saved Gallery.
-- “Keep in gallery” creates an independent persistent copy that can survive deletion of the originating chat.
+- `Keep in Gallery` creates an independent persistent copy that can survive deletion of the originating chat.
 - Pocket Phone/story artwork should not be accidentally mixed into ordinary saved story photographs.
 
 ## CYOA / Regex / rich presentation
@@ -349,10 +427,11 @@ Exact ST integration is still to be designed.
 
 - Exact icons/labels and visual treatment of the now-set top-menu order: Book → Cog → API → Codex → Appearance → Extensions.
 - Exact left-drawer visual details and Create sheet behavior; placement of the bottom quick-action row is settled as Creator → Characters → Personas → `…` Settings.
-- Exact right-drawer ordering and Story-vs-chat inheritance presentation.
+- Right-drawer order is now settled; exact per-row sheet/editor presentation can still be refined.
+- Story-level ownership/default rules for settings other than the already-set Lorebook behavior.
 - Exact Story browsing/card layout.
-- Exact Codex workspace behavior when one vs several lorebooks are bound.
-- Final Story ownership/inheritance model, especially truly standalone chats versus Story-bound chats.
+- Exact Codex workspace behavior when one versus several Lorebooks are bound.
+- Final Story ownership model, especially truly standalone chats versus Story-bound chats.
 - Final structured-data schema and exact AI wrapper syntax.
 - Final mapping from SnowBunny structured Character/Persona data to standard SillyTavern fields.
 - Context Broker ordering, deduplication and fitting rules.
