@@ -73,26 +73,31 @@ Therefore the Current Chat Lorebooks row remains useful even when the Story alre
 - Story-bound Lorebooks form the Story's shared/base Lorebook set.
 - A chat inside that Story may add **additional** Lorebooks for that specific chat.
 - The selector must make the effective Lorebooks for the chat understandable without pretending the Story-level bindings do not exist.
-- This is the one Story-to-chat inheritance/addition behavior that is currently confirmed.
 
-### What "Story inheritance versus chat overrides" means
+### Story-wide data versus chat-specific data
 
-This phrase is only shorthand for a data-ownership question: when a Story contains several chats, does a setting chosen on the Story automatically become the default/shared value for those chats, and can an individual chat then change or add to it?
+This is now settled and should remain deliberately simple.
 
-Do **not** assume that every right-drawer setting works that way.
+A **Story owns only two shared fiction systems**:
 
-Current status:
+1. **Lorebooks** — Story-bound Lorebooks apply across the Story's chats. An individual chat may add extra Lorebooks for itself.
+2. **Memories** — accepted MemoryMaker history belongs to the Story as a whole and is shared across that Story's chats.
 
-- **Lorebooks:** confirmed. A Story can bind Lorebooks and a chat can add extra Lorebooks on top.
-- **Model:** not yet defined as inherited from Story.
-- **Preset:** not yet defined as inherited from Story.
-- **Persona:** not yet defined as inherited from Story.
-- **Scenario:** ownership/relationship to Story versus standalone chat still needs to be settled.
-- **Regex:** not yet defined as inherited from Story.
-- **Memory:** its Story/chat ownership follows the MemoryMaker design and still needs exact integration rules.
-- **Agents, CYOA, AI Tools:** do not assume Story inheritance until explicitly decided.
+Everything else is **chat-dependent**. It is not inherited from the Story, and the Story does not provide defaults for it:
 
-This is **not** another menu section or UI row. It is an underlying rule we still need to define per feature so the app knows what belongs to the Story, what belongs to one chat, and what the right drawer should show.
+- Persona
+- Added Characters / cast
+- Model
+- Preset
+- Scenario
+- Regex
+- Agents / trackers
+- CYOA
+- AI Tools
+
+Do **not** build a generic `Story default → chat override` system for those features. The Story is not a settings preset for its chats. Its shared continuity is the Story Lorebooks plus the Story-wide Memory collection; the rest belongs to each chat.
+
+This also means the Story browser should not become a settings dashboard for Model, Preset, Persona, Scenario, Regex, Agents, CYOA or AI Tools.
 
 ### Tavo selector interaction to preserve
 
@@ -132,7 +137,7 @@ The important pattern is:
 
 ### General right-drawer selector rule
 
-Use this Tavo-style quick-sheet interaction for things whose normal job is primarily **selecting or assigning something to the current Story/chat**, for example:
+Use this Tavo-style quick-sheet interaction for things whose normal job is primarily **selecting or assigning something to the current chat**, for example:
 
 - Persona
 - Character/cast addition
