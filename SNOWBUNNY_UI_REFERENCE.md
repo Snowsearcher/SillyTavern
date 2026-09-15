@@ -41,7 +41,7 @@ After the Persona selector + `+` Add Character top area, the main rows are:
 
 There is **no separate Prompts row**. Prompt editing/configuration belongs to Preset.
 
-There is **no separate State / Tracker Summaries row**. That was an unnecessary planning placeholder. Tracker state/output belongs with the Agent/tracker system and/or the places where that state is actually displayed or audited, rather than becoming another right-drawer category.
+There is **no separate State / Tracker Summaries row**. Tracker state/output belongs with the Agent/tracker system and/or the places where that state is actually displayed or audited, rather than becoming another right-drawer category.
 
 Bottom utilities such as **Reset Chat**, **Chat Statistics** and **Search in Chat** remain conceptually separate/pinned at the bottom.
 
@@ -70,10 +70,29 @@ Lorebooks can be assigned at Story level, but an individual chat may need additi
 
 Therefore the Current Chat Lorebooks row remains useful even when the Story already has bound Lorebooks.
 
-- Story-bound Lorebooks are part of the chat's inherited setup.
-- The chat may add chat-specific Lorebooks on top of those Story bindings.
-- The selector must make the effective Lorebooks for the chat understandable without pretending Story inheritance does not exist.
-- Exact inherited-vs-chat-added visual treatment is still to be settled.
+- Story-bound Lorebooks form the Story's shared/base Lorebook set.
+- A chat inside that Story may add **additional** Lorebooks for that specific chat.
+- The selector must make the effective Lorebooks for the chat understandable without pretending the Story-level bindings do not exist.
+- This is the one Story-to-chat inheritance/addition behavior that is currently confirmed.
+
+### What "Story inheritance versus chat overrides" means
+
+This phrase is only shorthand for a data-ownership question: when a Story contains several chats, does a setting chosen on the Story automatically become the default/shared value for those chats, and can an individual chat then change or add to it?
+
+Do **not** assume that every right-drawer setting works that way.
+
+Current status:
+
+- **Lorebooks:** confirmed. A Story can bind Lorebooks and a chat can add extra Lorebooks on top.
+- **Model:** not yet defined as inherited from Story.
+- **Preset:** not yet defined as inherited from Story.
+- **Persona:** not yet defined as inherited from Story.
+- **Scenario:** ownership/relationship to Story versus standalone chat still needs to be settled.
+- **Regex:** not yet defined as inherited from Story.
+- **Memory:** its Story/chat ownership follows the MemoryMaker design and still needs exact integration rules.
+- **Agents, CYOA, AI Tools:** do not assume Story inheritance until explicitly decided.
+
+This is **not** another menu section or UI row. It is an underlying rule we still need to define per feature so the app knows what belongs to the Story, what belongs to one chat, and what the right drawer should show.
 
 ### Tavo selector interaction to preserve
 
