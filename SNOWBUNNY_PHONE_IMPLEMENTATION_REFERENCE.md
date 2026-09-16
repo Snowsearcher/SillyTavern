@@ -39,7 +39,7 @@ A contact becomes available only when the player's Persona actually acquires con
 - an already-established number the Persona is shown to possess;
 - a Character actually sharing a private contact route.
 
-Discovery must carry exact source evidence tied to stable SnowBunny message identity. Name matching alone is never sufficient.
+Discovery carries an exact quotation plus the stable SnowBunny message id/revision/source that established access. The result is validated against visible canonical story text before any contact is committed. Name matching alone is never sufficient.
 
 Character / Codex shared identity is used when available so the same fictional person remains the same actor across Messages, Nightowl and Story context.
 
@@ -95,6 +95,29 @@ An absent Character cannot automatically:
 
 A visitor uses the destination/address they plausibly know. Story Writer knowledge cannot silently correct their private knowledge.
 
+## Pocket Phone Upkeep
+
+`phone-upkeep.js` is now a native built-in support engine rather than a locked placeholder.
+
+Its cadence is based on completed assistant Story replies. The configured frequency is a count of completed story replies, not a real-time polling interval.
+
+Each run can perform two independent jobs:
+
+1. **Contact discovery** checks recent visible story text against actual Character / effective Codex Character identities. The model may propose a contact only by returning an exact candidate actor key, exact SnowBunny story message id and exact quotation. The app validates all three before saving anything.
+2. **Incoming-message upkeep** is considered only when fictional Story time is known and proactive incoming messages are enabled. A selector chooses at most two existing eligible contacts with a motivated reason to contact the player; selecting nobody is normal. The actual private reply is then generated through the same Character-aware Phone conversation engine.
+
+Unknown fictional time never creates a background polling loop. A contact that was already checked at the current Story time is not repeatedly reconsidered until Story time changes.
+
+The Agents surface exposes Pocket Phone Upkeep with:
+
+- on/off;
+- manual `Run Phone Upkeep now`;
+- cadence by completed Story replies;
+- recent-story window;
+- upkeep reasoning reply limit.
+
+Ordinary private-message output limits remain separate from Upkeep limits.
+
 ## Nightowl
 
 Nightowl is the default social app concept from the old design.
@@ -106,6 +129,8 @@ The current venue or plot point must not dominate the feed through repetitive ps
 A public post exists publicly, but the system must not assume every Character has read it.
 
 The same actor may have both private Messages and public Nightowl activity while retaining one stable fictional identity.
+
+The current native Nightowl screen can display stored profiles/posts. The full social-world generator and persistent background-account layer are still pending.
 
 ## Story ownership vs chat ownership
 
@@ -159,6 +184,8 @@ Phone-derived continuity is tied to stable SnowBunny message identities and Stor
 
 Editing, deleting, hiding or swiping Story history must not leave invalid derived Phone facts feeding future generation. Historical data may remain recoverable/readable, but invalid branch-derived material is excluded from current evidence/routing until rebuilt or re-established.
 
+Contact acquisition itself is evidence-bound. If the exact story evidence that granted a contact disappears or changes revision/source, the contact is automatically excluded from the current visible/effective Phone state rather than silently surviving as valid continuity.
+
 ## Current implementation
 
 Implemented on `snowbunny-mobile`:
@@ -173,6 +200,12 @@ Implemented on `snowbunny-mobile`:
 - texting-style/presentation boundary restored from old behavior;
 - separate private-reply and upkeep output limits;
 - photo/voice proposal gating;
+- evidence-backed automatic contact discovery;
+- contact rollback-by-evidence when the source branch changes;
+- completed-reply cadence for Pocket Phone Upkeep;
+- fictional-time gated proactive incoming-message selection;
+- manual and automatic Phone Upkeep;
+- Agents card + advanced Phone Upkeep controls;
 - factual Phone evidence projection;
 - Memory Maker Phone evidence + fingerprint validation;
 - Memory Recall Phone relevance hints;
@@ -189,9 +222,8 @@ Implemented on `snowbunny-mobile`:
 
 Do not mark Pocket Phone complete until these are real:
 
-- evidence-based automatic contact discovery / reconciliation;
-- dedicated Pocket Phone Upkeep engine/Agent tied to completed Story replies and fictional time;
 - Story-persistent background Nightowl users and social-world generation;
+- generated/maintained Nightowl profiles, feed pages and public reply threads;
 - profile/picture generation and management;
 - Profiles & pictures / Artwork folders / image-bundle import;
 - richer Nightowl profile/feed/thread interactions;
