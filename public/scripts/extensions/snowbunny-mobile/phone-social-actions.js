@@ -25,6 +25,10 @@ function clean(value, limit) {
     return String(value || '').trim().replace(/\s+/g, ' ').slice(0, limit);
 }
 
+function cleanHandle(value) {
+    return String(value || '').trim().replace(/^@+/, '').replace(/\s+/g, '_').slice(0, 80);
+}
+
 function playerActor() {
     return { kind: 'custom', entityId: '', avatar: '', lorebookId: '', entryId: '', key: 'player-public' };
 }
@@ -108,6 +112,26 @@ async function ensureOwnProfile() {
     return (await store.mutate(draft => structuredClone(ensureOwnProfileInDraft(draft)))).result;
 }
 
+async function saveOwnProfile(input = {}) {
+    const store = phone();
+    if (!store?.mutate) throw new Error('Pocket Phone is unavailable.');
+    const name = clean(input.name, 100);
+    const handle = cleanHandle(input.handle);
+    const bio = String(input.bio || '').trim().slice(0, 600);
+    if (!name) throw new Error('Enter a public display name.');
+    if (!handle || /\s/.test(handle)) throw new Error('Enter a public handle without spaces.');
+    return (await store.mutate(draft => {
+        const profile = ensureOwnProfileInDraft(draft);
+        profile.name = name;
+        profile.handle = handle;
+        profile.bio = bio;
+        profile.actor = playerActor();
+        profile.fields = { ...(profile.fields || {}), owner: 'player' };
+        profile.updatedAt = Date.now();
+        return structuredClone(profile);
+    })).result;
+}
+
 async function publish(input = {}) {
     const store = phone();
     if (!store?.mutate) throw new Error('Pocket Phone is unavailable.');
@@ -165,6 +189,7 @@ export function initPhoneSocialActions() {
         phoneSocialActions: {
             publish,
             ensureOwnProfile,
+            saveOwnProfile,
             ownProfile: state => structuredClone(ownProfileFromState(state)),
             playerActorKey,
         },
