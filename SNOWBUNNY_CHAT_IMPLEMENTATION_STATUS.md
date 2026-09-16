@@ -170,7 +170,7 @@ See `SNOWBUNNY_CODEX_IMPLEMENTATION_REFERENCE.md`.
 
 ## Semantic + exact Lore retrieval
 
-`lore-semantic-index.js` + `lore-retrieval.js` now use ST's vector backend.
+`lore-semantic-index.js` + `lore-retrieval.js` use ST's vector backend.
 
 - stable vector collection per Lorebook/version;
 - passage chunking/overlap and stable hashes;
@@ -189,7 +189,7 @@ Still missing: Character-card <-> Codex Character shared-document identity/dedup
 
 ## Story Memory + Memory Maker
 
-`memory-store.js`, `memory-maker.js` and `memory-ui.js` implement native accepted Memories and reviewed proposals.
+`memory-store.js`, `memory-maker.js`, `memory-integrity.js` and `memory-ui.js` implement native accepted Memories and reviewed proposals.
 
 Ownership/storage:
 
@@ -209,6 +209,15 @@ Memory Maker:
 - acceptance fails if Memory state or source evidence changed;
 - strict evidence boundary: visible story + accepted Memories + pending proposals + explicit correction, with no tracker/Scenario/Lore/support-state/unchosen-choice leak.
 
+Changed-source handling:
+
+- accepted Memory source validation scans the full active source chat instead of only a recent slice;
+- edited/swiped/hidden/deleted source evidence marks the accepted Memory `Needs review` at its Story/chat owner level;
+- other chats in the same Story share the invalid set without falsely treating cross-chat source as stale merely because another Story chat is open;
+- source-changed Memories are visibly marked in Saved Memories and the right drawer can show `N need review`;
+- Memory Maker receives `sourceChanged: true` and is explicitly told to verify against current visible evidence, correct/reconnect it when evidence is sufficient, or leave it alone rather than guess;
+- source-validity changes during a Memory Maker side review invalidate that review result.
+
 Review UI:
 
 - Saved Memories / Suggestions sheet;
@@ -217,15 +226,14 @@ Review UI:
 - one non-blocking in-chat proposal at a time;
 - operation-specific presentation;
 - Yes / No / Later;
-- Yes+note and No+note both route through revised proposal review instead of silently saving/discarding the note.
-
-`memory-integrity.js` now maintains a Story/chat-owner invalid set for accepted Memories whose original source story was edited/swiped/deleted in the actual source chat. Other chats in the same Story see the same invalid set without falsely declaring Memories stale merely because they came from another Story chat.
+- Yes+note and No+note both route through revised proposal review instead of silently saving/discarding the note;
+- changed-source target warnings also appear on relevant suggestions/proposal cards.
 
 See `SNOWBUNNY_MEMORY_IMPLEMENTATION_REFERENCE.md`.
 
 ## Memory Recall
 
-`memory-recall.js` now routes relevant accepted Memories to Story Writer before generation.
+`memory-recall.js` routes relevant accepted Memories to Story Writer before generation.
 
 - runs at awaited `GENERATION_AFTER_COMMANDS` so it sees the newest user draft;
 - uses recent visible story + pending user turn;
@@ -244,16 +252,19 @@ See `SNOWBUNNY_MEMORY_RECALL_IMPLEMENTATION_REFERENCE.md`.
 
 ## Story Tracker / rich Story State
 
-`tracker-store.js`, `story-tracker.js`, `tracker-ui.js` and `agents-ui.js` implement the first native Story Tracker path.
+`tracker-store.js`, `story-tracker.js`, `tracker-ui.js` and `agents-ui.js` implement the native Story Tracker path.
 
 State/validity:
 
 - substantial state stored in an authenticated chat-specific tracker file;
-- each snapshot binds to producing assistant message identity plus the whole visible evidence window used for the update;
+- each snapshot binds to producing assistant message identity plus the visible evidence window used for that exact update;
 - snapshots form a dependency chain through previous-snapshot id;
-- edit/delete/swipe history changes mark directly affected snapshots stale and propagate staleness through descendants;
+- edit/delete/swipe/history changes mark directly affected snapshots stale and propagate staleness through descendants;
 - stale state is removed from writer routing while historical panels remain visible for audit;
-- automatic rebuild starts again from the latest valid chain point.
+- after a deep branch edit, automatic rebuild starts from the latest valid chain point and replays each later completed assistant reply chronologically rather than jumping straight to the newest reply;
+- historical replay windows end at the reply being rebuilt, so future story text cannot leak backward into old tracker snapshots;
+- queued group/multi-speaker replies are tracked in order rather than collapsing several replies into one update;
+- replay stops at a failed update instead of skipping the broken continuity point and pretending later state is trustworthy.
 
 Generation/routing:
 
@@ -264,6 +275,7 @@ Generation/routing:
 - invalid tracker output keeps the previous state;
 - current state is inserted as hidden depth-zero `<current-state>` context for the next Story Writer reply;
 - canonical visible user prose is never modified;
+- turning Story Tracker off clears its writer prompt while historical panels remain readable;
 - View Context records the exact tracker snapshot/revision supplied and whether Snow edited it.
 
 Reader experience:
@@ -293,13 +305,13 @@ Reset Chat, Search in Chat and Chat Statistics are live through the real ST chat
 
 `state.js` keeps lightweight global/chat namespaced state.
 
-`message-identity.js` persists stable SnowBunny message ids, revisions and source fingerprints across prose/swipe/hidden/media changes. This now underpins CYOA expiry, Tracker validity, Memory proposals, Memory Recall and View Context.
+`message-identity.js` persists stable SnowBunny message ids, revisions and source fingerprints across prose/swipe/hidden/media changes. This underpins CYOA expiry, Tracker validity, Memory proposals, Memory Recall and View Context.
 
 ## View Context
 
 `context-view.js` provides the SnowBunny mobile audit sheet plus raw ST itemized prompt access.
 
-Live SnowBunny receipt producers now include:
+Live SnowBunny receipt producers include:
 
 - Lore/Codex retrieval;
 - recalled Memories;
@@ -321,7 +333,7 @@ The newer navigation, Members, Narrator, No Persona, Model, Scenario, CYOA, Stor
 
 - Narrator independent-speaker dispatch and Narrator-only new-chat fallback;
 - full Story Settings surface and Story <-> stand-alone continuity reconciliation;
-- Memory Maker changed-source review presentation/recovery UI and Pocket Phone evidence after Phone is ported;
+- cross-chat pending Story proposal validation/review UX, Memory revision/recovery UI and Pocket Phone evidence after Phone is ported;
 - Character <-> Codex Character shared-document identity/dedup;
 - generic Custom Agents / Pocket Phone Upkeep engine and full import/export/dependency tooling;
 - Regex destination and native display/input integration;
@@ -337,4 +349,4 @@ The newer navigation, Members, Narrator, No Persona, Model, Scenario, CYOA, Stor
 
 ## Next implementation focus
 
-The immediate quality seam is now to connect Story Settings/ownership reconciliation and finish the remaining context-audit/invalidation edges around Memory Maker. After that, Regex + the general Agent engine and the phone-first Preset editor can replace more temporary ST bridges. A fresh mobile-width visual pass is also due before claiming the newer UI polish is correct.
+The immediate quality seam is Story Settings/ownership reconciliation and the remaining cross-chat/recovery edges around Story Memory. After that, Regex + the general Agent engine and phone-first Preset editor can replace more temporary ST bridges. A fresh mobile-width visual pass is also due before claiming the newer UI polish is correct.
