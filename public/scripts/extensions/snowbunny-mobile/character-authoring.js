@@ -103,10 +103,7 @@ function normalizeDocument(value, character = null) {
         .slice(0, MAX_FIELDS)
         .map(normalizeField)
         .filter(field => field && !seen.has(field.id) && seen.add(field.id))
-        .map(field => ({
-            ...field,
-            value: field.value || legacy[field.id] || '',
-        }))
+        .map(field => ({ ...field, value: field.value || legacy[field.id] || '' }))
         .sort((a, b) => a.order - b.order);
 
     for (const starter of starterFields()) {
@@ -134,11 +131,14 @@ function snowExtension(character) {
 function metadataFrom(character) {
     const snow = snowExtension(character);
     const meta = plainObject(snow.card) ? snow.card : {};
+    const nativeFavorite = character?.fav === true
+        || character?.fav === 'true'
+        || character?.data?.extensions?.fav === true;
     return {
         category: String(meta.category || ''),
         aliases: stringList(meta.aliases),
         tags: stringList(character?.data?.tags ?? character?.tags),
-        favorite: meta.favorite ?? character?.fav === true || character?.fav === 'true' || character?.data?.extensions?.fav === true,
+        favorite: meta.favorite ?? nativeFavorite,
         creator: String(character?.data?.creator ?? ''),
         version: String(character?.data?.character_version ?? ''),
         source: String(meta.source || ''),
@@ -203,15 +203,15 @@ async function editAttribute(character, field, value) {
     if (!response.ok) throw new Error(`Could not save Character ${field} (${response.status}).`);
 }
 
-function fieldValue(document, fieldId) {
-    return document.fields.find(field => field.id === fieldId)?.value || '';
+function fieldValue(authorDocument, fieldId) {
+    return authorDocument.fields.find(field => field.id === fieldId)?.value || '';
 }
 
-function compatibilityDescription(document) {
+function compatibilityDescription(authorDocument) {
     const chunks = [];
-    if (document.content.trim()) chunks.push(document.content.trim());
-    if (document.mode !== 'freeform') {
-        for (const field of document.fields) {
+    if (authorDocument.content.trim()) chunks.push(authorDocument.content.trim());
+    if (authorDocument.mode !== 'freeform') {
+        for (const field of authorDocument.fields) {
             if (field.role !== 'content' || field.id === 'personality' || !field.value.trim()) continue;
             chunks.push(`${field.label}:\n${field.value.trim()}`);
         }
@@ -219,12 +219,15 @@ function compatibilityDescription(document) {
     return chunks.join('\n\n');
 }
 
-function compatibilityValues(document) {
+function compatibilityValues(authorDocument) {
     return {
-        description: compatibilityDescription(document),
-        personality: fieldValue(document, 'personality'),
-        mes_example: document.fields.filter(field => field.role === 'dialogueExamples' && field.value.trim()).map(field => field.value.trim()).join('\n\n'),
-        first_mes: document.fields.find(field => field.role === 'firstMessage')?.value || '',
+        description: compatibilityDescription(authorDocument),
+        personality: fieldValue(authorDocument, 'personality'),
+        mes_example: authorDocument.fields
+            .filter(field => field.role === 'dialogueExamples' && field.value.trim())
+            .map(field => field.value.trim())
+            .join('\n\n'),
+        first_mes: authorDocument.fields.find(field => field.role === 'firstMessage')?.value || '',
     };
 }
 
@@ -234,7 +237,11 @@ function updateRuntimeCharacter(avatar, record) {
     runtime.name = record.name;
     runtime.description = compatibilityDescription(record.document);
     runtime.personality = fieldValue(record.document, 'personality');
-    runtime.mes_example = record.document.fields.filter(field => field.role === 'dialogueExamples').map(field => field.value).filter(Boolean).join('\n\n');
+    runtime.mes_example = record.document.fields
+        .filter(field => field.role === 'dialogueExamples')
+        .map(field => field.value)
+        .filter(Boolean)
+        .join('\n\n');
     runtime.first_mes = record.document.fields.find(field => field.role === 'firstMessage')?.value || '';
     runtime.fav = record.metadata.favorite === true;
     runtime.tags = clone(record.metadata.tags);
@@ -268,8 +275,8 @@ async function saveCharacter(record) {
     const character = await fetchCharacter(record.avatar, { fresh: true });
     if (!character) throw new Error('Character could not be loaded.');
 
-    const document = normalizeDocument(record.document, character);
-    document.updatedAt = Date.now();
+    const authorDocument = normalizeDocument(record.document, character);
+    authorDocument.updatedAt = Date.now();
     const metadata = {
         ...metadataFrom(character),
         ...(plainObject(record.metadata) ? record.metadata : {}),
@@ -284,7 +291,7 @@ async function saveCharacter(record) {
         ...(plainObject(existingExtensions[EXTENSION_KEY]) ? existingExtensions[EXTENSION_KEY] : {}),
         schemaVersion: SCHEMA_VERSION,
         entityId,
-        authorDocument: document,
+        authorDocument,
         card: {
             category: String(metadata.category || ''),
             aliases: metadata.aliases,
@@ -293,10 +300,8 @@ async function saveCharacter(record) {
         },
     };
 
-    const compat = compatibilityValues(document);
+    const compat = compatibilityValues(authorDocument);
     const nextName = String(record.name || character.data?.name || character.name || '').trim() || 'Unnamed Character';
-    // These are compatibility projections of the canonical SnowBunny document.
-    // The authored structured document itself lives under data.extensions.snowbunny.
     await editAttribute(character, 'extensions', existingExtensions);
     await editAttribute(character, 'description', compat.description);
     await editAttribute(character, 'personality', compat.personality);
@@ -307,8 +312,6 @@ async function saveCharacter(record) {
     await editAttribute(character, 'character_version', String(metadata.version || ''));
     await editAttribute(character, 'creator_notes', String(metadata.notes || ''));
     if (nextName !== String(character.data?.name || character.name || '')) {
-        // Renaming the actual PNG/chat owner has wider consequences, so keep the
-        // native Character name authoritative until the dedicated rename flow is used.
         console.warn('[SnowBunny] Character display rename was not applied because ST rename also changes chat ownership.');
     }
 
@@ -316,13 +319,13 @@ async function saveCharacter(record) {
         avatar: record.avatar,
         name: String(character.data?.name || character.name || nextName),
         entityId,
-        document,
+        document: authorDocument,
         metadata,
     };
     const refreshed = await fetchCharacter(record.avatar, { fresh: true });
     if (refreshed) cache.set(record.avatar, refreshed);
     updateRuntimeCharacter(record.avatar, saved);
-    document.dispatchEvent(new CustomEvent('snowbunny:character-authoring-changed', {
+    globalThis.document.dispatchEvent(new CustomEvent('snowbunny:character-authoring-changed', {
         detail: { avatar: record.avatar, entityId },
     }));
     return clone(saved);
@@ -336,7 +339,11 @@ function serializeDocument(record) {
         if (field.role !== 'content' || !field.value?.trim()) continue;
         parts.push(`${field.label}:\n${field.value.trim()}`);
     }
-    const name = String(record.name || 'Character').replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    const name = String(record.name || 'Character')
+        .replaceAll('&', '&amp;')
+        .replaceAll('"', '&quot;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
     return `<character name="${name}">\n${parts.join('\n\n')}\n</character>`;
 }
 
