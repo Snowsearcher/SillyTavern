@@ -15,12 +15,31 @@ const STOCK_ICONS = Object.freeze([
     { id: 'radio', fa: 'fa-radio', fit: 'retro, broadcast, community-radio or analog-flavored public networks' },
 ]);
 
-const DEFAULT_TERMS = Object.freeze({
-    home: 'Feed',
-    post: 'Post',
-    reply: 'Reply',
-    profile: 'Profile',
-    community: 'Community',
+const MODE_TERMS = Object.freeze({
+    microblog: Object.freeze({
+        home: 'For you', post: 'Post', reply: 'Reply', profile: 'Profile',
+        space: 'Topic', community: 'Topic', reshare: 'Repost', like: 'Like', following: 'Following', saved: 'Saved',
+    }),
+    forum: Object.freeze({
+        home: 'Boards', post: 'Thread', reply: 'Reply', profile: 'Member',
+        space: 'Board', community: 'Board', reshare: 'Quote', like: 'Upvote', following: 'Watched', saved: 'Saved',
+    }),
+    community: Object.freeze({
+        home: 'Home', post: 'Post', reply: 'Comment', profile: 'Profile',
+        space: 'Community', community: 'Community', reshare: 'Share', like: 'Like', following: 'Following', saved: 'Saved',
+    }),
+    image: Object.freeze({
+        home: 'Explore', post: 'Share', reply: 'Comment', profile: 'Profile',
+        space: 'Collection', community: 'Collection', reshare: 'Reshare', like: 'Like', following: 'Following', saved: 'Saved',
+    }),
+    bulletin: Object.freeze({
+        home: 'Notices', post: 'Notice', reply: 'Response', profile: 'Poster',
+        space: 'Section', community: 'Section', reshare: 'Pass on', like: 'Mark', following: 'Watching', saved: 'Kept',
+    }),
+    hybrid: Object.freeze({
+        home: 'Public', post: 'Entry', reply: 'Response', profile: 'Profile',
+        space: 'Space', community: 'Space', reshare: 'Echo', like: 'Mark', following: 'Following', saved: 'Saved',
+    }),
 });
 
 let initialized = false;
@@ -68,13 +87,17 @@ function currentStory() {
     return id ? storyRecords().find(story => String(story.id) === id) || null : null;
 }
 
+function defaultTerms(mode = 'hybrid') {
+    return { ...(MODE_TERMS[mode] || MODE_TERMS.hybrid) };
+}
+
 function fallbackNetwork() {
     return {
         name: 'Social',
         description: 'The public social network used in this story.',
         mode: 'hybrid',
         iconId: 'globe',
-        terminology: { ...DEFAULT_TERMS },
+        terminology: defaultTerms('hybrid'),
         source: 'fallback',
         createdAt: 0,
         updatedAt: 0,
@@ -86,25 +109,36 @@ function cleanTerm(value, fallback) {
     return text ? text.slice(0, 28) : fallback;
 }
 
+function normalizeTerminology(source, mode) {
+    const defaults = defaultTerms(mode);
+    const terms = plainObject(source) ? source : {};
+    const space = cleanTerm(terms.space || terms.community, defaults.space);
+    return {
+        home: cleanTerm(terms.home, defaults.home),
+        post: cleanTerm(terms.post, defaults.post),
+        reply: cleanTerm(terms.reply, defaults.reply),
+        profile: cleanTerm(terms.profile, defaults.profile),
+        space,
+        community: space,
+        reshare: cleanTerm(terms.reshare, defaults.reshare),
+        like: cleanTerm(terms.like, defaults.like),
+        following: cleanTerm(terms.following, defaults.following),
+        saved: cleanTerm(terms.saved, defaults.saved),
+    };
+}
+
 function normalizeNetwork(value, { fallback = true } = {}) {
     if (!plainObject(value)) return fallback ? fallbackNetwork() : null;
     const name = String(value.name || '').trim().replace(/\s+/g, ' ').slice(0, 36);
     if (!name) return fallback ? fallbackNetwork() : null;
     const iconId = STOCK_ICONS.some(icon => icon.id === value.iconId) ? value.iconId : 'globe';
     const mode = MODES.includes(value.mode) ? value.mode : 'hybrid';
-    const sourceTerms = plainObject(value.terminology) ? value.terminology : {};
     return {
         name,
         description: String(value.description || '').trim().slice(0, 360),
         mode,
         iconId,
-        terminology: {
-            home: cleanTerm(sourceTerms.home, DEFAULT_TERMS.home),
-            post: cleanTerm(sourceTerms.post, DEFAULT_TERMS.post),
-            reply: cleanTerm(sourceTerms.reply, DEFAULT_TERMS.reply),
-            profile: cleanTerm(sourceTerms.profile, DEFAULT_TERMS.profile),
-            community: cleanTerm(sourceTerms.community, DEFAULT_TERMS.community),
-        },
+        terminology: normalizeTerminology(value.terminology, mode),
         source: String(value.source || 'ai'),
         createdAt: Number(value.createdAt) || Date.now(),
         updatedAt: Number(value.updatedAt) || Date.now(),
@@ -224,12 +258,12 @@ This identity is Story-level and should remain stable across that Story's chats.
 Choose exactly one mode from: ${MODES.join(', ')}.
 Choose exactly one stock icon id from this catalog:\n${STOCK_ICONS.map(icon => `${icon.id}: ${icon.fit}`).join('\n')}
 
-Also choose short interface terminology that fits the network. A forum-like service might call items Threads and Communities. A microblog might use Posts and Replies. A fantasy notice medium could use Notices and Boards. Keep the terms understandable.
+Choose short interface terminology that belongs to this network. The words are part of its interaction grammar, not decoration. A forum could use Boards, Threads, Replies, Members, Upvotes and Watched. A bulletin system could use Notices, Responses, Sections, Marks and Watching. A magical or historical medium may invent equally clear setting-native terms. Keep every label understandable to a user even when the fiction gives it flavor.
 
 Do not use Reddit, X, Twitter, Facebook, Instagram, Tumblr, TikTok or another real product name unless the fictional source material explicitly establishes that real service as canon.
 
 Return JSON only:
-{"name":"fictional network name","description":"one concise sentence","mode":"microblog|forum|community|image|bulletin|hybrid","iconId":"one allowed id","terminology":{"home":"Feed","post":"Post","reply":"Reply","profile":"Profile","community":"Community"}}`;
+{"name":"fictional network name","description":"one concise sentence","mode":"microblog|forum|community|image|bulletin|hybrid","iconId":"one allowed id","terminology":{"home":"home/feed label","post":"item label","reply":"reply label","profile":"person/account label","space":"board/community/section label","reshare":"share/quote/repost label","like":"reaction/upvote label","following":"following/watching label","saved":"saved/kept label"}}`;
 }
 
 async function generateNetwork() {
@@ -245,7 +279,7 @@ async function generateNetwork() {
     const raw = await api.generateRaw({
         prompt,
         systemPrompt: designerSystemPrompt(),
-        responseLength: 1100,
+        responseLength: 1400,
         trimNames: false,
     });
     return parseNetwork(raw);
@@ -295,6 +329,7 @@ export function initPhoneSocialNetwork() {
             ensure: ensureNetwork,
             regenerate: () => ensureNetwork({ force: true }),
             normalize: normalizeNetwork,
+            defaultTerms,
             iconClass,
             iconRecord,
             modes: [...MODES],
