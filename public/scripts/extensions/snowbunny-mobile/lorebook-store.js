@@ -50,6 +50,14 @@ function normalizeSection(section, index = 0) {
     };
 }
 
+function normalizeLink(link) {
+    if (!plainObject(link) || link.kind !== 'character') return null;
+    const entityId = String(link.entityId || '').trim();
+    const avatar = String(link.avatar || '').trim();
+    if (!entityId || !avatar) return null;
+    return { kind: 'character', entityId, avatar };
+}
+
 function normalizeEntry(entry, index = 0) {
     if (!plainObject(entry)) return null;
     const name = String(entry.name ?? '').trim();
@@ -65,6 +73,7 @@ function normalizeEntry(entry, index = 0) {
         description: String(entry.description ?? ''),
         sections: safeArray(entry.sections).map(normalizeSection).filter(Boolean),
         image: plainObject(entry.image) ? clone(entry.image) : null,
+        link: normalizeLink(entry.link),
         createdAt: Number(entry.createdAt) || Date.now(),
         updatedAt: Number(entry.updatedAt) || Date.now(),
         order: Number.isFinite(Number(entry.order)) ? Number(entry.order) : index,
