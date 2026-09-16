@@ -440,7 +440,10 @@ export function initCustomAgentsUi() {
     initialized = true;
     installStyles();
     observer = new MutationObserver(queueEnhance);
-    observer.observe(document.body, { childList: true, subtree: true });
+    // The Agents workspace is mounted directly under body. Watching only direct
+    // children catches workspace creation without observing the cards this module
+    // itself adds/removes, which avoids a self-triggering render loop.
+    observer.observe(document.body, { childList: true });
     for (const name of ['snowbunny:agents-changed', 'snowbunny:agent-result-ready', 'snowbunny:agent-results-reconciled', 'snowbunny:tracker-state-changed', 'snowbunny:shell-open']) {
         document.addEventListener(name, queueEnhance);
     }
