@@ -98,16 +98,19 @@ Contextual Chat creation direction: while inside a Story, New Chat should defaul
 
 The right drawer is a Tavo-inspired launchpad for the current chat. It should favor fast selectors and purpose-built sheets over deep settings pages.
 
-#### Top area
+#### Top area: Members + Persona
 
-- **Persona selector** sits at the top.
-- A **+ Add Character** control sits beside it and opens the visual Character/cast picker.
-- The Character picker uses SnowBunny’s proper image-forward selector with search/filter/favorites and multi-select where useful.
-- Narrator is not a separate settings row. It is a **stock Character** available through the normal Character-add flow for chats where the actual cast already lives in Lorebook/Codex Character entries.
+- Show a compact **Members (N)** section first.
+- Put **Add** at the right of the Members header.
+- Each current member appears as one clean portrait/name row with only the small per-member controls that are actually useful.
+- Do not duplicate the cast as chips, a second Characters row, or header-avatar clutter elsewhere.
+- Tapping **Add** opens the visual multi-select Character picker with current members already selected.
+- **Persona** is a separate compact selector row immediately below Members.
+- Narrator appears through the Members flow as a protected built-in special identity, but keeps its dedicated Narrator editor/semantics rather than becoming a fake ordinary person card.
 
 #### Settled row order
 
-After Persona + `+` Add Character:
+After Members + Persona:
 
 1. **Model**
 2. **Preset**
@@ -149,8 +152,9 @@ Appearance/backgrounds/themes stay out of the right drawer because the top Appea
 
 - A Story can have bound Lorebooks.
 - A chat inside that Story may add **additional Lorebooks** for itself.
-- The right-drawer Lorebooks row remains useful because it shows/manages what this chat effectively uses.
-- The selector should distinguish the Story’s base bindings from chat-added Lorebooks clearly enough that the user understands why an entry is active.
+- Story-bound Lorebooks are mandatory for chats in that Story and cannot be disabled locally from the right drawer.
+- To remove/deactivate a Story-bound Lorebook, change the Story's Lorebook selection in Story Settings.
+- The right-drawer Lorebooks row manages the effective set for the current chat while clearly distinguishing Story-bound read-only books from chat-added books.
 
 #### Tavo-style selector behavior
 
@@ -173,13 +177,15 @@ This is settled and intentionally narrow.
 
 A **Story owns only two shared fiction systems**:
 
-1. **Lorebooks** — Story bindings form the shared/base Lorebook set. A chat inside the Story may add extra Lorebooks for itself.
+1. **Lorebooks** — Story bindings form the mandatory/shared Lorebook set for every chat in the Story. A chat may add extra Lorebooks, but cannot disable Story-bound ones locally.
 2. **Memories** — accepted MemoryMaker history belongs to the Story as a whole and is shared across that Story’s chats.
+
+A **stand-alone chat** has no Story memory pool. Its accepted MemoryMaker memories belong only to that one chat.
 
 Everything else is **chat-dependent**. It is not inherited from the Story and the Story does not provide defaults for it:
 
 - Persona
-- Added Characters / cast
+- Members / added Characters
 - Model
 - Preset
 - Scenario
@@ -194,18 +200,70 @@ This is an underlying data rule, not another menu section.
 
 ## Stories
 
-- Stories are browsable visual homes for related chats, not just invisible ownership records.
-- A Story needs strong user-facing representation: cover artwork, title and easy visual recognition.
-- Opening a Story is how the user browses all chats that belong to it.
-- Story chats should be visual/easy on the eyes, using artwork/cards rather than anonymous numbered rows.
-- Archived chats should be collapsible/kept out of the normal path.
-- Search/tags should be available if useful for a large Story.
-- The left drawer gives quick access only to the three most recent chats. Older Story chats are intentionally reached through the Story.
-- Stand-alone chats remain separate from Story chats.
-- Story-wide fiction data is limited to **Lorebooks and Memories**. Do not turn a Story into a container for Model, Preset, Persona, Scenario, Regex, Agents, CYOA or AI Tools.
-- Story setup should not be dumped into the Story browsing page. The Story page is primarily for browsing/managing the Story and its chats.
+### Story selector
 
-Open design item: exact Story card/chat-card layout and what lightweight metadata is shown on the Story page.
+- Stories are browsable visual homes for related chats, not invisible ownership records.
+- Use the supplied SnowBunny Story screenshots as the visual baseline.
+- A Story needs strong user-facing representation: cover artwork, title, chat count and recent/last-updated information.
+- **Stand-alone Chats** remains a prominent route near the top of the Stories surface.
+- Include Story search plus filter/sort controls.
+- Keep both **Visual / big-cover** and **Compact / list** browsing modes. The existing view-switch icon is for this purpose.
+- Story cover art is functional navigation, not decoration.
+- The left drawer still gives quick access only to the three most recent chats. Older Story chats are intentionally reached by opening the Story.
+
+### Story interior / chat browser
+
+- Opening a Story enters its own browsable chat space.
+- Preserve the image-forward Story header with title/cover and an easy Edit Story Details action.
+- Search within the Story's chats.
+- Chat cards show artwork, title, last-message preview and date/time without unnecessary status noise.
+- Keep a prominent **New Chat** action.
+- Archived chats stay collected/collapsed at the bottom.
+- Keep the Visual/Compact switch for the Story chat browser where useful.
+- Do **not** restore the old Story-interior `Chats / Codex` tab. Codex now belongs in the top menu.
+
+The Story interior is primarily a **chat browser**, not a settings dashboard.
+
+### Story Settings
+
+`Story Settings` has three concrete jobs:
+
+1. **Assign Story Lorebooks**
+   - choose/remove the Lorebooks shared across every chat in the Story;
+   - this is where a Story-bound Lorebook is deactivated.
+2. **Story-wide Memories**
+   - inspect/manage the accepted MemoryMaker history owned by the Story;
+   - these memories are available across chats in that Story.
+3. **Manage Story chats / membership**
+   - add eligible chats into the Story;
+   - let/remove a chat from the Story;
+   - support converting a Story chat into a **stand-alone chat** when needed.
+
+Do not put Model, Preset, Persona, Members, Scenario, Regex, Agents, CYOA, AI Tools, Appearance or API defaults in Story Settings.
+
+Moving a chat between Story and stand-alone ownership should preserve the chat itself and its chat-owned data rather than recreating it: history, title/artwork, Persona, Members, Model, Preset, Scenario, Regex, Agents, CYOA and AI Tools move with the chat. Exact policy for already-created Story-wide Memories that originated from a chat later detached from the Story is still open; do not silently delete or rewrite those memories as a side effect of moving the chat.
+
+### Story overflow / management
+
+The Story overflow/menu may include:
+
+- Rename, tags & cover / Edit Story Details
+- Story Settings
+- Statistics
+- Export
+- Archive Story
+- Delete Story
+
+Story Settings should stay narrow and explicit rather than becoming a generic project-settings dump.
+
+### Reusable Visual / Compact library pattern
+
+Keep the same browsing-mode switch in other image-heavy libraries when useful, including Characters, Personas and Lorebooks/Codex:
+
+- Visual mode emphasizes artwork/recognition.
+- Compact mode emphasizes denser scanning.
+- Switching view changes presentation only, not the underlying collection, filters, sort order or selection.
+- Remember the user's chosen view per library where practical.
 
 ## Lorebooks / Codex
 
@@ -214,7 +272,7 @@ Open design item: exact Story card/chat-card layout and what lightweight metadat
 There are three access contexts for the same underlying Lorebook data:
 
 1. **Global Lorebooks in the left Library** — manage the whole collection.
-2. **Assigned/bound Lorebooks in the right drawer** — manage what the current chat effectively uses, including Story bindings plus chat additions.
+2. **Assigned/bound Lorebooks in the right drawer** — manage what the current chat effectively uses, including mandatory Story bindings plus chat additions.
 3. **Codex in the top menu** — the Novelcrafter-style workspace for seeing and editing the Lorebook(s) bound to the current Story/chat.
 
 Codex is the polished working surface: visual cards, images, entry types, previews, search, grouping, good editing, and Visual/Compact views where useful.
@@ -228,13 +286,19 @@ Do not reduce SnowBunny Lorebooks to SillyTavern World Info. ST World Info may b
 - Selectors should be image-forward, readable and mobile-first: large artwork/cards, search, filters, favorites and good selection UX.
 - Editors keep SnowBunny’s structured/freeform authoring modes and custom fields.
 - A Character/Persona is not merely one giant description blob. Structured fields are canonical authored data.
-- Global browse/edit belongs in the left Library; current-chat selection belongs in the right drawer.
+- Global browse/edit belongs in the left Library; current-chat membership/Persona selection belongs in the right drawer.
+- Reuse the Visual/Compact library switch where useful.
 
-### Stock Narrator Character
+### Built-in Narrator
 
-Narrator is a built-in/stock Character for chats where the actual story characters live as Lorebook/Codex Character entries. It supplies a neutral assistant identity without becoming a separate narrator subsystem or separate right-drawer row.
+Narrator remains a special built-in identity rather than a generic user-created Character card.
 
-Exact global-library visibility/default behavior of Narrator remains to be settled.
+- Preserve its dedicated authored fields: displayed name, portrait, Narrator instructions, and Voice and style.
+- Expose it through the normal Members/Add selector so it is easy to use in chats where the real cast lives in Lorebook/Codex Character entries.
+- It may coexist with ordinary selected Members when a chat needs that arrangement.
+- Keep it editable but protected from accidental deletion.
+- Do not pad it with irrelevant ordinary Character fields such as Age, Appearance or Sexuality.
+- AI serialization should identify it as Narrator; exact wrapper syntax is still to be frozen.
 
 ## Structured authoring and AI-facing wrappers
 
@@ -352,6 +416,7 @@ Exact implementation against SillyTavern is still to be designed.
 - Preserve the custom reviewed-memory philosophy rather than replacing it with a stock summarizer.
 - Memories are historical events, separate from current trackers.
 - For Story-bound chats, accepted Memories belong to the **Story-wide Memory collection** and are available across that Story’s chats.
+- For a stand-alone chat, accepted Memories belong only to that chat.
 - Support reviewed create/edit/merge/delete proposals and source validation.
 - Editing old history must not leave stale memories silently treated as current truth.
 
@@ -431,10 +496,10 @@ Exact ST integration is still to be designed.
 
 - Exact icons/labels and visual treatment of the now-set top-menu order: Book → Cog → API → Codex → Appearance → Extensions.
 - Exact left-drawer visual details and Create sheet behavior; placement of the bottom quick-action row is settled as Creator → Characters → Personas → `…` Settings.
-- Right-drawer order is now settled; exact per-row sheet/editor presentation can still be refined.
-- Exact Story browsing/card layout.
+- Right-drawer order and Members/Persona structure are settled; exact per-row sheet/editor polish can still be refined.
+- Story selector/interior direction, Visual/Compact switch, and Story Settings responsibilities are settled from the supplied screenshots; exact final spacing/card polish can still be refined.
+- Exact policy for Story-wide Memories that originated from a chat later moved out of the Story.
 - Exact Codex workspace behavior when one versus several Lorebooks are bound.
-- Final Story ownership model around truly standalone chats versus Story-bound chats.
 - Final structured-data schema and exact AI wrapper syntax.
 - Final mapping from SnowBunny structured Character/Persona data to standard SillyTavern fields.
 - Context Broker ordering, deduplication and fitting rules.
