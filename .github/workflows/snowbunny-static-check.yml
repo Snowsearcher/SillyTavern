@@ -40,6 +40,8 @@ jobs:
           public/scripts/extensions/snowbunny-mobile/phone-artwork.js
           public/scripts/extensions/snowbunny-mobile/phone-artwork-library.js
           public/scripts/extensions/snowbunny-mobile/phone-artwork-manager-ui.js
+          public/scripts/extensions/snowbunny-mobile/phone-history-status.js
+          public/scripts/extensions/snowbunny-mobile/phone-history-status-ui.js
           public/scripts/extensions/snowbunny-mobile/phone-social-network.js
           public/scripts/extensions/snowbunny-mobile/phone-social-actions.js
           public/scripts/extensions/snowbunny-mobile/phone-social-world.js
