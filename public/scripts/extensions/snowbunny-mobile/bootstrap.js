@@ -1,8 +1,48 @@
 import { init as initMobileShell } from './index.js';
-import { initMessageIdentity } from './message-identity.js';
-import { initSnowBunnyState } from './state.js';
+import {
+    currentMessageIdentity,
+    ensureMessageIdentity,
+    initMessageIdentity,
+    messageFingerprint,
+    reconcileMessageIdentities,
+} from './message-identity.js';
+import {
+    deleteChatStateKey,
+    initSnowBunnyState,
+    patchChatState,
+    patchGlobalState,
+    readChatState,
+    readGlobalState,
+    SNOWBUNNY_STATE_VERSION,
+} from './state.js';
+
+function installNamespace() {
+    const existing = globalThis.SnowBunny && typeof globalThis.SnowBunny === 'object'
+        ? globalThis.SnowBunny
+        : {};
+
+    globalThis.SnowBunny = {
+        ...existing,
+        apiVersion: 1,
+        stateVersion: SNOWBUNNY_STATE_VERSION,
+        state: {
+            readGlobal: readGlobalState,
+            patchGlobal: patchGlobalState,
+            readChat: readChatState,
+            patchChat: patchChatState,
+            deleteChatKey: deleteChatStateKey,
+        },
+        identity: {
+            current: currentMessageIdentity,
+            ensure: ensureMessageIdentity,
+            fingerprint: messageFingerprint,
+            reconcile: reconcileMessageIdentities,
+        },
+    };
+}
 
 export function init() {
+    installNamespace();
     initSnowBunnyState();
     initMessageIdentity();
     initMobileShell();
