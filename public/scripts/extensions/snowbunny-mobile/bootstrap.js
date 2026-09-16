@@ -11,6 +11,7 @@ import {
 } from './message-identity.js';
 import { initModelSelector } from './model-selector.js';
 import { initPersonaSelector } from './persona-selector.js';
+import { initScenario } from './scenario.js';
 import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
 import { initShellTransitions } from './shell-transitions.js';
@@ -60,6 +61,7 @@ export function init() {
     initShellActions();
     initModelSelector();
     initPersonaSelector();
+    initScenario();
     initChatStatistics();
     initShellTransitions();
 }
