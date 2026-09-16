@@ -1,6 +1,7 @@
 const STYLE_ID = 'snowbunny-context-view-style';
 const OVERLAY_ID = 'snowbunny-context-view';
-const PROMPT_SELECTOR = '#chat .mes:not([is_user="true"]) .mes_prompt';
+const PROXY_CLASS = 'snowbunny-context-proxy';
+const NATIVE_PROMPT_SELECTOR = '#chat .mes:not([is_user="true"]) .mes_prompt:not(.snowbunny-context-proxy)';
 
 let initialized = false;
 let observer = null;
@@ -18,6 +19,14 @@ function messageId(element) {
 function clean(value) {
     if (value === null || value === undefined || value === '') return '—';
     return String(value);
+}
+
+function rawPromptAvailable(button) {
+    return Boolean(
+        button
+        && !button.classList.contains('displayNone')
+        && button.style.display !== 'none'
+    );
 }
 
 function installStyles() {
@@ -158,6 +167,9 @@ function installStyles() {
             color: inherit;
             font-weight: 600;
         }
+        .${PROXY_CLASS} {
+            display: block !important;
+        }
         @media (min-width: 560px) {
             #${OVERLAY_ID} { align-items: center; padding: 18px; }
             #${OVERLAY_ID} .snowbunny-context-sheet { border-radius: 22px; }
@@ -166,18 +178,24 @@ function installStyles() {
     document.head.append(style);
 }
 
-function exposeContextHooks() {
-    for (const button of document.querySelectorAll(PROMPT_SELECTOR)) {
-        if (!(button instanceof HTMLElement)) continue;
-        if (button.dataset.snowbunnyContextHook !== '1') {
-            const available = button.style.display !== 'none' && !button.classList.contains('displayNone');
-            button.dataset.snowbunnyRawPromptAvailable = String(available);
-            button.dataset.snowbunnyContextHook = '1';
-        } else if (button.style.display !== 'none' && !button.classList.contains('displayNone')) {
-            button.dataset.snowbunnyRawPromptAvailable = 'true';
+function ensureContextProxies() {
+    for (const native of document.querySelectorAll(NATIVE_PROMPT_SELECTOR)) {
+        if (!(native instanceof HTMLElement)) continue;
+        const message = native.closest('.mes');
+        const buttons = native.parentElement;
+        if (!message || !buttons) continue;
+
+        let proxy = buttons.querySelector(`.${PROXY_CLASS}`);
+        if (!(proxy instanceof HTMLButtonElement)) {
+            proxy = document.createElement('button');
+            proxy.type = 'button';
+            proxy.className = `mes_button mes_prompt ${PROXY_CLASS}`;
+            proxy.title = 'View Context';
+            proxy.setAttribute('aria-label', 'View Context');
+            proxy.innerHTML = '<i class="fa-solid fa-list-check" aria-hidden="true"></i>';
+            buttons.insertBefore(proxy, native);
         }
-        button.classList.remove('displayNone');
-        button.style.removeProperty('display');
+        proxy.dataset.snowbunnyRawPromptAvailable = String(rawPromptAvailable(native));
     }
 }
 
@@ -248,17 +266,24 @@ function closeContextView() {
     document.getElementById(OVERLAY_ID)?.remove();
 }
 
-function openRawPrompt(button) {
-    if (!(button instanceof HTMLElement)) return;
-    button.dataset.snowbunnyBypassContext = '1';
-    button.click();
+function nativePromptButton(proxy) {
+    const buttons = proxy?.parentElement;
+    if (!buttons) return null;
+    return [...buttons.querySelectorAll('.mes_prompt:not(.snowbunny-context-proxy)')]
+        .find(button => button instanceof HTMLElement) ?? null;
 }
 
-function showContextView(button) {
+function openRawPrompt(proxy) {
+    const native = nativePromptButton(proxy);
+    if (!(native instanceof HTMLElement) || !rawPromptAvailable(native)) return;
+    native.click();
+}
+
+function showContextView(proxy) {
     closeContextView();
     installStyles();
 
-    const id = messageId(button);
+    const id = messageId(proxy);
     const api = context();
     const message = id === null ? null : api?.chat?.[id] ?? null;
     if (!message) return;
@@ -266,7 +291,7 @@ function showContextView(button) {
     const identity = globalThis.SnowBunny?.identity?.current?.(message);
     const receipt = message?.extra?.snowbunny?.contextReceipt ?? null;
     const speaker = message?.name || 'Reply';
-    const rawAvailable = button.dataset.snowbunnyRawPromptAvailable === 'true';
+    const rawAvailable = rawPromptAvailable(nativePromptButton(proxy));
 
     const overlay = document.createElement('div');
     overlay.id = OVERLAY_ID;
@@ -332,7 +357,7 @@ function showContextView(button) {
         raw.textContent = 'Raw prompt details';
         raw.addEventListener('click', () => {
             closeContextView();
-            openRawPrompt(button);
+            openRawPrompt(proxy);
         });
         actions.append(raw);
     }
@@ -352,18 +377,13 @@ function showContextView(button) {
     document.body.append(overlay);
 }
 
-function onPromptClick(event) {
-    const button = event.target instanceof Element ? event.target.closest('.mes_prompt') : null;
-    if (!(button instanceof HTMLElement) || !button.closest('#chat')) return;
-
-    if (button.dataset.snowbunnyBypassContext === '1') {
-        delete button.dataset.snowbunnyBypassContext;
-        return;
-    }
+function onProxyClick(event) {
+    const proxy = event.target instanceof Element ? event.target.closest(`.${PROXY_CLASS}`) : null;
+    if (!(proxy instanceof HTMLElement) || !proxy.closest('#chat')) return;
 
     event.preventDefault();
     event.stopImmediatePropagation();
-    showContextView(button);
+    showContextView(proxy);
 }
 
 function onKeyDown(event) {
@@ -378,11 +398,11 @@ export function initContextView() {
     initialized = true;
 
     installStyles();
-    exposeContextHooks();
+    ensureContextProxies();
 
     const chat = document.querySelector('#chat');
     if (chat) {
-        observer = new MutationObserver(exposeContextHooks);
+        observer = new MutationObserver(ensureContextProxies);
         observer.observe(chat, {
             subtree: true,
             childList: true,
@@ -391,6 +411,6 @@ export function initContextView() {
         });
     }
 
-    document.addEventListener('click', onPromptClick, true);
+    document.addEventListener('click', onProxyClick, true);
     document.addEventListener('keydown', onKeyDown, true);
 }
