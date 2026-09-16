@@ -183,11 +183,56 @@ Use this Tavo-style quick-sheet interaction for things whose normal job is prima
 
 Do **not** mechanically force every complex system into this pattern. Scenario, Memory, Agents, CYOA and AI Tools may open their own purpose-built screens/sheets where their job is more than simple selection.
 
+## Story selector and Story interior
+
+Use the supplied SnowBunny Story screenshots as the primary visual reference for Story browsing. This is much closer to the intended design than a newly invented generic library screen.
+
+### Story selector / Stories library
+
+Preserve the interaction and information hierarchy shown in the screenshots:
+
+- Header labeled **Stories** with a back action and compact secondary actions.
+- Intro/library area may keep the friendly `Your Library` presentation and short explanation rather than looking like a database table.
+- **Stand-alone chats** remains a prominent route near the top of the Stories surface.
+- Search field for Stories.
+- Filter and sort controls.
+- Support both **visual grid** and **compact list** browsing. Grid is important because Story cover art is a core recognition/navigation feature, while list mode is useful when the library grows.
+- Story cards show recognizable cover art, Story title, chat count and recent/last-updated information.
+- Keep a prominent **Create** action.
+- Do not expose every chat from every Story here. Opening a Story is how the user reaches its older chats.
+
+Unknown icon behavior from the old screenshots should not be copied blindly. Preserve the layout idea, then verify what any ambiguous switch/swap icon actually did before implementing it.
+
+### Story interior / Story chat browser
+
+Preserve the old SnowBunny Story interior as the visual baseline:
+
+- Story header with cover art and title.
+- Easy **Edit Story details** action for presentation metadata such as title/cover/tags.
+- Search specifically within this Story's chats.
+- Chat cards with artwork, title, last-message preview, date/time and compact overflow menu.
+- Clearly indicate the currently open/selected chat without turning every card into a noisy status panel.
+- Prominent **New Chat** action.
+- Archived chats remain collected/collapsed at the bottom when present.
+
+The Story interior is primarily a **chat browser**, not a settings dashboard.
+
+### Corrections from the old screenshots for the new fork
+
+Some old SnowBunny controls no longer match the architecture we have now settled:
+
+- The old **Chats / Codex** segmented control should **not** be carried forward as-is. Codex is now a top-menu workspace for the Lorebook(s) bound to the current Story/chat. Do not create a second Story-interior Codex destination.
+- Story-wide fiction ownership is only **Lorebooks + Memories**. Old Story-level Characters, Persona, Model, Preset, Agents, Theme, API defaults, etc. are obsolete and must not return through `Story Settings`.
+- The Story overflow/menu is the correct place to reach Story-owned configuration. At minimum it can provide presentation management (`Rename, tags & cover` / edit details), Story settings for **Story Lorebooks and Story Memories**, Statistics, Archive and Delete. Export can also live here or in the appropriate Story management surface.
+- Exact presentation of Story Lorebooks and Story Memories inside that menu is still open: they may be direct menu entries or live inside a small Story Settings screen. What is fixed is that only those two fiction systems are Story-wide.
+- The old people/group icon in the Story header should not be assumed to represent Story cast in the new fork. Story cast is no longer a Story-owned setting. Verify or repurpose/remove that icon rather than preserving obsolete behavior.
+
 ## Visual quality notes from the reference
 
 - Favor large rows/cards over tiny controls.
 - Use clear spacing and section separators rather than dense ST-style control piles.
 - Show current cast only in the compact Members section; do not duplicate it elsewhere in the drawer or main chat UI.
+- Story covers are functional navigation, not decoration. Keep them large enough to recognize in grid mode.
 - Bottom sheets should feel deliberate and native on mobile: rounded top corners, strong hierarchy, obvious selected state, smooth slide animation and dimmed background context.
 - Selection should be fast enough that changing a Lorebook, Regex resource, Persona, Model, Preset or similar current-chat resource feels like a couple of taps, not configuration work.
 - SnowBunny can make the selectors visually richer than Tavo, especially for Characters, Personas and image-bearing resources, while preserving Tavo's speed and simplicity.
@@ -197,9 +242,11 @@ Do **not** mechanically force every complex system into this pattern. Scenario, 
 When resuming this project in another chat or implementation session:
 
 - Treat the Tavo screenshots supplied by Snow as the ground truth for right-drawer member UX.
+- Treat Snow's Story screenshots as the ground truth for the Story selector/interior visual direction unless Snow deliberately changes them.
 - Do **not** revert to a `Persona + plus only` header. The settled pattern is **Members (N) + Add**, followed by a separate Persona row.
 - Do **not** add cast chips, a duplicate Characters row, or header-avatar clutter elsewhere to compensate. The Members block is the cast surface.
 - Do **not** turn Narrator into an ordinary person card just because SillyTavern is Character-oriented. Narrator is a special built-in identity with its own editor and fields, exposed through Members for usability.
 - Do **not** invent the meaning of Tavo's per-member speech-bubble / crossed-bubble control. Verify it before implementing an equivalent.
+- Do **not** restore the old Story-interior Codex tab. Codex belongs in the top menu in the current design.
+- Do **not** restore old broad Story inheritance. Story-level fiction ownership is Story Lorebooks + Story Memories only.
 - Keep the distinction between global Character management (left drawer) and current-chat membership (right drawer).
-- Keep Story-level ownership narrow: Story Lorebooks + Story Memories only. Everything else in this right drawer is chat-specific.
