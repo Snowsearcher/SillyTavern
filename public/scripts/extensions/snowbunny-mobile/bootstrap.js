@@ -36,6 +36,7 @@ import { initPersonaSelector } from './persona-selector.js';
 import { initRecentChats } from './recent-chats.js';
 import { initRegexCompatibilityGuard } from './regex-compat-guard.js';
 import { initRegexNative } from './regex-native.js';
+import { initResponseConfig } from './response-config.js';
 import { initScenario } from './scenario.js';
 import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
@@ -105,6 +106,7 @@ export function init() {
     initComposerLayout();
     initMobileShell();
     initSnowBunnyShell();
+    initResponseConfig();
     initShellActions();
     initMemberSelector();
     initNarrator();
