@@ -9,6 +9,9 @@ import { init as initMobileShell } from './index.js';
 import { initLorebookStore } from './lorebook-store.js';
 import { initLoreRetrieval } from './lore-retrieval.js';
 import { initLoreSemanticIndex } from './lore-semantic-index.js';
+import { initMemoryMaker } from './memory-maker.js';
+import { initMemoryStore } from './memory-store.js';
+import { initMemoryUi } from './memory-ui.js';
 import {
     currentMessageIdentity,
     ensureMessageIdentity,
@@ -68,6 +71,8 @@ export function init() {
     initLorebookStore();
     initLoreSemanticIndex();
     initMessageIdentity();
+    initMemoryStore();
+    initMemoryMaker();
     initContextView();
     initComposerLayout();
     initMobileShell();
@@ -85,6 +90,7 @@ export function init() {
     initCodex();
     initStoryLorebooks();
     initLoreRetrieval();
+    initMemoryUi();
     initCreateMenu();
     initCreateCodexBridge();
     initShellTransitions();
