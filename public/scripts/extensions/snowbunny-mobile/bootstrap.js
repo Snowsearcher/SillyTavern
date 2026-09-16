@@ -6,6 +6,7 @@ import { initCreateMenu } from './create-menu.js';
 import { initCyoaNative } from './cyoa-native.js';
 import { init as initMobileShell } from './index.js';
 import { initLorebookStore } from './lorebook-store.js';
+import { initLoreRetrieval } from './lore-retrieval.js';
 import {
     currentMessageIdentity,
     ensureMessageIdentity,
@@ -74,6 +75,7 @@ export function init() {
     initChatStatistics();
     initStoriesLibrary();
     initCodex();
+    initLoreRetrieval();
     initCreateMenu();
     initShellTransitions();
 }
