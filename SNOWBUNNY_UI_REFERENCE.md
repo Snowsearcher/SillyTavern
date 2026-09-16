@@ -217,19 +217,38 @@ Preserve the old SnowBunny Story interior as the visual baseline:
 
 The Story interior is primarily a **chat browser**, not a settings dashboard.
 
+### Story settings and chat membership
+
+`Story Settings` is now a small Story-management surface with three concrete jobs:
+
+1. **Assign Story Lorebooks**
+   - choose the Lorebooks that are mandatory/shared across every chat in this Story;
+   - removing one here deactivates it Story-wide;
+   - chat-level Lorebook controls cannot disable these Story-bound books.
+2. **View / manage Story-wide Memories**
+   - inspect the MemoryMaker memories owned by this Story;
+   - these are the memories shared across all chats in the Story.
+3. **Manage which chats belong to the Story**
+   - add eligible chats into the Story;
+   - remove/let go of a chat from the Story;
+   - converting a Story chat into a **stand-alone chat** is a normal supported action here, not a hidden migration trick.
+
+Do not put Model, Preset, Persona, Members, Scenario, Regex, Agents, CYOA, AI Tools, Appearance or API defaults in Story Settings. Those remain chat/global concerns according to their settled ownership.
+
+When moving a chat between Story and stand-alone ownership, preserve the chat itself: its message history, chat-specific Persona/Members/Model/Preset/Scenario/Regex/Agents/CYOA/AI Tools settings, artwork/title, and other chat-owned data should move with it rather than being recreated. The exact treatment of already-created Story-wide Memories that originated from a detached chat is still a continuity/data-policy question to settle later; do not silently delete or rewrite them during a move.
+
 ### Corrections from the old screenshots for the new fork
 
 Some old SnowBunny controls no longer match the architecture we have now settled:
 
 - The old **Chats / Codex** segmented control should **not** be carried forward as-is. Codex is now a top-menu workspace for the Lorebook(s) bound to the current Story/chat. Do not create a second Story-interior Codex destination.
 - Story-wide fiction ownership is only **Lorebooks + Memories**. Old Story-level Characters, Persona, Model, Preset, Agents, Theme, API defaults, etc. are obsolete and must not return through `Story Settings`.
-- The Story overflow/menu is the correct place to reach Story-owned configuration. At minimum it can provide presentation management (`Rename, tags & cover` / edit details), Story settings for **Story Lorebooks and Story Memories**, Statistics, Archive and Delete. Export can also live here or in the appropriate Story management surface.
-- Exact presentation of Story Lorebooks and Story Memories inside that menu is still open: they may be direct menu entries or live inside a small Story Settings screen. What is fixed is that only those two fiction systems are Story-wide.
+- The Story overflow/menu is the correct place to reach Story-owned configuration. At minimum it can provide presentation management (`Rename, tags & cover` / edit details), **Story Settings** (Story Lorebooks, Story Memories, Story chat membership), Statistics, Archive and Delete. Export can also live here or in the appropriate Story management surface.
 - The icon previously misread as a people/group icon is the **view-mode switch**. Preserve that job. Do not repurpose it for Story cast or remove it on the assumption that it represented people.
 
 ### Reusable visual / compact view pattern
 
-SnowBunny already used the same basic view switch in other visual libraries, including Characters. Treat this as a reusable browsing pattern rather than a one-off Story control:
+Keep the Visual/Compact toggle. SnowBunny already used the same basic view switch in other visual libraries, including Characters, and it is useful enough to retain as a recurring browsing pattern rather than a one-off Story control:
 
 - image-heavy resources can offer **Visual / big-cover** mode for quick recognition;
 - the same library can offer **Compact / list** mode for denser browsing;
@@ -261,4 +280,5 @@ When resuming this project in another chat or implementation session:
 - Do **not** invent the meaning of Tavo's per-member speech-bubble / crossed-bubble control. Verify it before implementing an equivalent.
 - Do **not** restore the old Story-interior Codex tab. Codex belongs in the top menu in the current design.
 - Do **not** restore old broad Story inheritance. Story-level fiction ownership is Story Lorebooks + Story Memories only.
+- Story Settings also owns **chat membership management**: add chats, let chats go, and convert a Story chat into a stand-alone chat.
 - Keep the distinction between global Character management (left drawer) and current-chat membership (right drawer).
