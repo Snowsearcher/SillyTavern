@@ -110,7 +110,9 @@
         display: none !important;
     }
 
-    body.snowbunny-mobile #chat .mes > .mes_block > .mes_buttons {
+    /* Keep ST's action nodes alive for compatibility, but never show its
+       permanent per-message ellipsis/pencil strip in SnowBunny reading mode. */
+    body.snowbunny-mobile #chat .mes .mes_buttons {
         display: none !important;
     }
 
