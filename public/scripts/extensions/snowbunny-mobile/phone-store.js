@@ -426,6 +426,9 @@ async function setSettings(patch = {}) {
             ...patch,
             upkeep: patch.upkeep ? { ...state.settings.upkeep, ...patch.upkeep } : state.settings.upkeep,
         });
+        if (Object.prototype.hasOwnProperty.call(patch, 'incoming')) {
+            for (const contact of state.contacts || []) contact.proactive = patch.incoming === true;
+        }
     })).state.settings;
 }
 
