@@ -50,6 +50,7 @@ import { initPhoneSocialActions } from './phone-social-actions.js';
 import { initPhoneSocialArtworkUi } from './phone-social-artwork-ui.js';
 import { initPhoneSocialLifecycle } from './phone-social-lifecycle.js';
 import { initPhoneSocialNetwork } from './phone-social-network.js';
+import { initPhoneSocialPagingUi } from './phone-social-paging-ui.js';
 import { initPhoneSocialProfileUi } from './phone-social-profile-ui.js';
 import { initPhoneSocialUi } from './phone-social-ui.js';
 import { initPhoneSocialWorld } from './phone-social-world.js';
@@ -133,6 +134,7 @@ export function init() {
     initPhoneSocialUi();
     initPhoneSocialProfileUi();
     initPhoneSocialArtworkUi();
+    initPhoneSocialPagingUi();
     initPhoneSocialLifecycle();
     initPhoneAgentsUi();
     initMemoryStore();
