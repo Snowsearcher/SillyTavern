@@ -348,7 +348,32 @@ Native Custom Agents now run alongside the built-in Story Tracker.
 - historical reader-facing result projection;
 - View Context receipt when Agent feedback reached Story Writer.
 
-Pocket Phone Upkeep remains intentionally locked until the native Phone subsystem exists.
+## Pocket Phone
+
+The native Pocket Phone continuity core, reader UI and first built-in Upkeep engine are live.
+
+- authenticated chat-specific Phone file;
+- stable Character/Codex actor identity;
+- evidence-bound contacts/messages/posts/actions;
+- invalid branch-derived Phone facts excluded by stable message id/revision/source checks;
+- private Character-aware messaging with silence, pending replies and unread state;
+- texting-style rules affect writing conventions only, never personality/knowledge;
+- Story-time-aware availability and proactive communication;
+- evidence-backed automatic contact discovery requiring an exact story quotation;
+- Pocket Phone Upkeep cadence counts completed story replies rather than real time;
+- unknown fictional time does not arm proactive polling;
+- at most two motivated proactive contacts selected per upkeep pass;
+- Agents surface exposes Phone Upkeep toggle, Run now and Advanced cadence/history/reply-limit controls;
+- dashboard with Persona, Story time, Inbox, Messages, Nightowl, Settings and Gallery;
+- Phone quick action in the composer when enabled;
+- factual Phone evidence can reach Memory Maker;
+- Phone can act as a Memory Recall relevance hint;
+- relevant Phone continuity can reach Story Writer with an explicit knowledge boundary;
+- View Context records Phone routing for the generated reply.
+
+Still missing for full Phone parity: persistent/generated Nightowl world, public profile/reply generation, artwork/profile folders and bundle import, full generated media fulfillment, stale-evidence review UI and final shared composer quick tray.
+
+See `SNOWBUNNY_PHONE_IMPLEMENTATION_REFERENCE.md`.
 
 ## Native Regex
 
@@ -378,6 +403,7 @@ Context receipts now include:
 - recalled Memories;
 - current Story Tracker;
 - Custom Agent writer feedback;
+- selectively routed Pocket Phone continuity;
 - selected model/provider/API/preset;
 - Scenario/CYOA/Narrator/Members/Regex guidance summary;
 - final outgoing Chat/Text Completion request capture;
@@ -389,19 +415,17 @@ Context receipts now include:
 
 History is labelled as text matching rather than pretending transformed prompts always have exact one-to-one provenance.
 
-Phone receipts remain pending until the native Phone subsystem is ported.
-
 ## Current-chat utilities
 
 Reset Chat, Search in Chat and Chat Statistics are live through real ST chat data.
 
 ## State, validation and launcher
 
-`state.js` keeps lightweight namespaced global/chat state. `message-identity.js` persists stable SnowBunny message ids/revisions/source fingerprints and underpins CYOA expiry, Tracker, Memory, Agents and View Context.
+`state.js` keeps lightweight namespaced global/chat state. `message-identity.js` persists stable SnowBunny message ids/revisions/source fingerprints and underpins CYOA expiry, Tracker, Memory, Agents, Phone and View Context.
 
 `SnowBunny.bat` updates the development branch, checks packages and starts ST without the earlier repeated command sequence. It is not the final Android package.
 
-`.github/workflows/snowbunny-static-check.yml` checks every SnowBunny JavaScript file plus the deliberate Regex core adapter on pushes. The current Character/Persona/shared-Codex build passes this check.
+`.github/workflows/snowbunny-static-check.yml` checks every SnowBunny JavaScript file plus the deliberate Regex core adapter on pushes. The current SnowBunny JavaScript build passes this check.
 
 The upstream merge-conflict workflow may remain red on the fork because its GitHub App token cannot be minted; it fails before its actual conflict check and is not a SnowBunny code result.
 
@@ -409,12 +433,12 @@ The upstream merge-conflict workflow may remain red on the fork because its GitH
 
 The first narrow/mobile-width pass validated the original chat shell and caught the fixed stock-control/composer overlap bugs.
 
-The newer navigation, Response, Members, Narrator, Character/Persona libraries, shared Character/Codex editor route, Model, Preset, Scenario, CYOA, Stories, Codex retrieval, Memory, Regex, Agents, Story State and expanded View Context are implemented/wired but have **not yet received the next visual/device validation pass**. Do not call those surfaces visually approved until they are run.
+The newer navigation, Response, Members, Narrator, Character/Persona libraries, shared Character/Codex editor route, Model, Preset, Scenario, CYOA, Stories, Codex retrieval, Memory, Regex, Agents, Story State, Pocket Phone and expanded View Context are implemented/wired but have **not yet received the next visual/device validation pass**. Do not call those surfaces visually approved until they are run.
 
 ## Still not complete
 
 - independent Narrator-speaker dispatch and Narrator-only new-chat fallback;
-- native Pocket Phone state/conversations, Pocket Phone Upkeep and Phone receipts;
+- full Pocket Phone Nightowl/social-world and artwork/media parity;
 - Memory Maker cross-chat source validation without opening the source chat;
 - final advanced Lore embedding-source UI;
 - selective multi-connection/profile switching in Model;
@@ -429,6 +453,6 @@ The newer navigation, Response, Members, Narrator, Character/Persona libraries, 
 
 ## Next implementation focus
 
-The Character/Persona shared-authoring seam is now in place. The strongest remaining continuity block is the native Pocket Phone subsystem because Memory Maker, Custom Agents and View Context already have explicit routing/evidence slots waiting for real Phone state.
+Pocket Phone private continuity and evidence-backed Upkeep are now in place. The next Phone block is the Story-persistent Nightowl/social-world layer plus the profile/artwork system recovered from the old SnowBunny design, followed by its richer public profile/reply interactions and media fulfillment.
 
-A fresh narrow/mobile visual pass is also due soon. It should happen before presentation work stacks much further, so keyboard, drag/reorder, selector and workspace layout problems in the newly added surfaces are caught early.
+A fresh narrow/mobile visual pass is also due soon. It should happen before presentation work stacks much further, so keyboard, drag/reorder, selector, Phone and workspace layout problems in the newly added surfaces are caught early.
