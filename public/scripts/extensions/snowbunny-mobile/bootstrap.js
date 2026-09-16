@@ -28,6 +28,7 @@ import { initModelSelector } from './model-selector.js';
 import { initNarrator } from './narrator.js';
 import { initPersonaSelector } from './persona-selector.js';
 import { initRecentChats } from './recent-chats.js';
+import { initRegexCompatibilityGuard } from './regex-compat-guard.js';
 import { initRegexNative } from './regex-native.js';
 import { initScenario } from './scenario.js';
 import { initSnowBunnyShell } from './shell.js';
@@ -89,6 +90,7 @@ export function init() {
     initStoryTracker();
     initMemoryMaker();
     initMemoryRecall();
+    initRegexCompatibilityGuard();
     initRegexNative();
     initContextView();
     initComposerLayout();
