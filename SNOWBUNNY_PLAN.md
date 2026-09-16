@@ -241,7 +241,31 @@ The Story interior is primarily a **chat browser**, not a settings dashboard.
 
 Do not put Model, Preset, Persona, Members, Scenario, Regex, Agents, CYOA, AI Tools, Appearance or API defaults in Story Settings.
 
-Moving a chat between Story and stand-alone ownership should preserve the chat itself and its chat-owned data rather than recreating it: history, title/artwork, Persona, Members, Model, Preset, Scenario, Regex, Agents, CYOA and AI Tools move with the chat. Exact policy for already-created Story-wide Memories that originated from a chat later detached from the Story is still open; do not silently delete or rewrite those memories as a side effect of moving the chat.
+#### Detaching a Story chat: continuity fork
+
+Turning a Story chat into a stand-alone chat is a **continuity fork**, not a destructive move.
+
+- The original Story keeps its Story-wide Memories unchanged. A memory remains part of that Story's history even if the chat that originally supplied its evidence later leaves. This matches the old SnowBunny memory design, which already allowed accepted Story memories to outlive a removed source chat.
+- At the moment of detachment, the new stand-alone chat receives a **private snapshot copy of the Story's current accepted Memory pool**. The chat therefore remembers the shared continuity it actually knew before leaving, including useful history that may have originated in sibling chats.
+- The snapshot is independent after the fork. Future Story-memory edits do not change the stand-alone copy, and future stand-alone memory edits do not change the Story.
+- Copied memories receive stand-alone-local IDs plus lineage metadata such as the source Story, source memory ID and source memory version. This lets SnowBunny recognize an unchanged fork later without treating the two pools as one mutable record.
+- Provenance that points to the detached chat's own messages may continue to use normal source-fingerprint validation. Provenance that points to other chats in the old Story becomes **frozen historical origin** in the stand-alone copy so later edits to sibling Story chats cannot silently invalidate or mutate the detached branch.
+- The chat also keeps the same effective Lorebook context it had at detachment: the Story-bound Lorebooks are converted into ordinary chat-owned Lorebook assignments and unioned with any Lorebooks that were already chat-specific. Detaching a chat must not suddenly make its world knowledge disappear.
+- The confirmation UI should explain the result plainly: the chat keeps a private copy of the current Story lore/memory continuity; the Story keeps its own copies; the two stop syncing after the move.
+
+#### Adding a stand-alone chat to a Story
+
+Joining a Story is intentionally more conservative because it can introduce history into a shared memory pool.
+
+- The destination Story's Memory pool becomes the active shared memory source for the joined chat.
+- Do **not** silently dump the stand-alone chat's private Memories into the Story.
+- If the chat has local Memories, convert them into a **reviewed MemoryMaker import/reconciliation batch** for the destination Story. MemoryMaker may propose create/edit/merge changes so duplicates and connected events are reconciled instead of copied blindly.
+- Import/reconciliation must not silently delete destination Story memories. Destructive changes require the normal explicit MemoryMaker review.
+- A forked memory whose lineage shows that it is an unchanged copy of a memory already present in the same Story is skipped automatically rather than proposed again.
+- Local memories that are not accepted into the Story remain archived with the chat as inactive migration history. They are not fed to generation while the chat belongs to the Story, but they remain available for export/recovery or for a later detach.
+- Moving a chat directly from Story A to Story B follows the same model: first create the independent continuity snapshot from Story A, then join Story B and reconcile that snapshot through reviewed import. Never silently merge two Story histories.
+
+The chat itself is never recreated during these moves. Its message history, title/artwork, Persona, Members, Model, Preset, Scenario, Regex, Agents, CYOA, AI Tools and other chat-owned data stay attached to the chat.
 
 ### Story overflow / management
 
@@ -417,6 +441,8 @@ Exact implementation against SillyTavern is still to be designed.
 - Memories are historical events, separate from current trackers.
 - For Story-bound chats, accepted Memories belong to the **Story-wide Memory collection** and are available across that Story’s chats.
 - For a stand-alone chat, accepted Memories belong only to that chat.
+- Detaching a Story chat forks the current Story Memory pool into a private stand-alone snapshot while leaving the Story pool unchanged; the two diverge afterward.
+- Joining a Story never silently merges private chat memories into shared Story memory. Reconcile them through reviewed MemoryMaker proposals, using lineage to skip unchanged memories that already exist in the destination Story.
 - Support reviewed create/edit/merge/delete proposals and source validation.
 - Editing old history must not leave stale memories silently treated as current truth.
 
@@ -497,8 +523,7 @@ Exact ST integration is still to be designed.
 - Exact icons/labels and visual treatment of the now-set top-menu order: Book → Cog → API → Codex → Appearance → Extensions.
 - Exact left-drawer visual details and Create sheet behavior; placement of the bottom quick-action row is settled as Creator → Characters → Personas → `…` Settings.
 - Right-drawer order and Members/Persona structure are settled; exact per-row sheet/editor polish can still be refined.
-- Story selector/interior direction, Visual/Compact switch, and Story Settings responsibilities are settled from the supplied screenshots; exact final spacing/card polish can still be refined.
-- Exact policy for Story-wide Memories that originated from a chat later moved out of the Story.
+- Story selector/interior direction, Visual/Compact switch, Story Settings responsibilities, and Story↔stand-alone continuity-transfer policy are settled; exact final spacing/card polish can still be refined.
 - Exact Codex workspace behavior when one versus several Lorebooks are bound.
 - Final structured-data schema and exact AI wrapper syntax.
 - Final mapping from SnowBunny structured Character/Persona data to standard SillyTavern fields.
