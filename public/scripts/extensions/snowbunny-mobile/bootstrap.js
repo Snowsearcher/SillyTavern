@@ -43,6 +43,7 @@ import { initPhoneConversation } from './phone-conversation.js';
 import { initPhoneEvidence } from './phone-evidence.js';
 import { initPhoneRouting } from './phone-routing.js';
 import { initPhoneStore } from './phone-store.js';
+import { initPhoneUi } from './phone-ui.js';
 import { initPresetEditor } from './preset-editor.js';
 import { initRecentChats } from './recent-chats.js';
 import { initRegexCompatibilityGuard } from './regex-compat-guard.js';
@@ -109,6 +110,7 @@ export function init() {
     initPhoneEvidence();
     initPhoneRouting();
     initPhoneConversation();
+    initPhoneUi();
     initMemoryStore();
     initAgentStore();
     initMemoryIntegrity();
