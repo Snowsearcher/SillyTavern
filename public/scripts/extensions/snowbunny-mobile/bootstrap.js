@@ -6,6 +6,7 @@ import { initComposerLayout } from './composer-layout.js';
 import { initContextView } from './context-view.js';
 import { initCreateCodexBridge } from './create-codex-bridge.js';
 import { initCreateMenu } from './create-menu.js';
+import { initCustomAgentDrawerCount } from './custom-agent-drawer-count.js';
 import { initCustomAgentEngine } from './custom-agent-engine.js';
 import { initCustomAgentResultsUi } from './custom-agent-results-ui.js';
 import { initCustomAgentsUi } from './custom-agents-ui.js';
@@ -123,6 +124,7 @@ export function init() {
     initCustomAgentResultsUi();
     initAgentsUi();
     initCustomAgentsUi();
+    initCustomAgentDrawerCount();
     initCreateMenu();
     initCreateCodexBridge();
     initShellTransitions();
