@@ -17,12 +17,36 @@ This file records what is actually implemented on `snowbunny-mobile`, separate f
 - Latest assistant reply gets standalone Retry and Continue controls beneath it.
 - The actual ST `#send_textarea` remains the text input.
 - Added attachment `+` invokes ST's actual file input.
-- Stock options control remains reachable as the current tools/extensions fallback.
+- Stock options/extension controls remain compatible with the real composer.
 - Observer reconciliation is idempotent; SnowBunny-added tail controls are not recreated in a mutation loop.
+- A visual-width bug where an extra composer control (for example the magic-wand action) could overlap the writing field was fixed by measuring the real left-control cluster instead of assuming one fixed-width button.
+
+### First real SnowBunny navigation shell
+
+`shell.js` now replaces the stock SillyTavern mobile icon parade with the first SnowBunny-owned outer shell.
+
+Implemented behavior:
+
+- retractable top strip in the settled order: Stories, Response, API, Codex, Look, Extensions;
+- stock top icon parade hidden only in SnowBunny mobile mode while ST's real drawers remain alive underneath for temporary bridge routes;
+- Response routes to ST's real AI Response Configuration backend;
+- API routes to ST's real API/connection backend;
+- Look opens a SnowBunny bottom sheet that routes to the current Background and Theme controls while the dedicated Appearance editor is ported;
+- Extensions routes to ST's real extension management surface;
+- Stories and Codex are visibly present in their settled positions but intentionally disabled until their actual SnowBunny surfaces are wired, rather than being falsely mapped to unrelated ST pages;
+- left and right SnowBunny drawers slide over the story with a dimmed backdrop;
+- both drawers can be opened with small edge handles or an edge swipe;
+- left drawer establishes the settled Library hierarchy and bottom quick-action row;
+- right drawer establishes Members + Persona followed by Model, Preset, Lorebooks, Scenario, Regex, Memory, Agents and CYOA, plus the three pinned chat utilities;
+- current Character/speaker, Persona name, active model and active preset are read from the real ST state where available;
+- unfinished SnowBunny-owned resources are deliberately disabled instead of pretending stock World Info/other ST systems are the same thing;
+- top-strip collapsed state persists through the namespaced SnowBunny global state adapter.
+
+This is the outer-shell foundation, not the final Stories/Codex/Current Chat implementation. The important structural change is that the stock mobile chrome is no longer the intended user-facing navigation layer.
 
 ### SnowBunny compatibility namespace
 
-`bootstrap.js` now initializes one `globalThis.SnowBunny` namespace instead of letting custom systems invent unrelated globals.
+`bootstrap.js` initializes one `globalThis.SnowBunny` namespace instead of letting custom systems invent unrelated globals.
 
 Current namespaces:
 
@@ -44,7 +68,7 @@ This is intended for lightweight configuration and pointers, not giant Lorebook/
 
 ### Stable message identity/source revision
 
-`message-identity.js` now gives each real ST message a persisted `extra.snowbunny` identity:
+`message-identity.js` gives each real ST message a persisted `extra.snowbunny` identity:
 
 - stable opaque `id`;
 - `revision`;
@@ -70,11 +94,25 @@ This is the base needed for tracker validity, Memory evidence, CYOA expiry and h
 
 The custom routing receipt producer is not wired yet; the sheet is ready for it.
 
+## Visual validation completed
+
+The first narrow/mobile-width visual pass confirmed:
+
+- the SnowBunny extension loads on the fork;
+- message cards render without replacing ST's canonical message DOM;
+- tap-message menu opens in place;
+- Retry / Continue appear beneath the latest reply;
+- the live composer remains usable;
+- two concrete layout bugs were caught from the screenshots and fixed: stock message header controls leaking through, and the extra composer magic-wand control colliding with the writing field.
+
 ## Deliberately not claimed complete yet
 
-- Left Library drawer.
-- Right Current Chat drawer.
-- Retractable top menu.
+- Actual Stories library/interior behind the top Book action and left Library row.
+- Actual SnowBunny Lorebook library and top Codex workspace.
+- Current-chat Members multi-select and Persona quick selector.
+- Current-chat Model and Preset quick sheets.
+- Lorebooks / Scenario / Regex / Memory / Agents / CYOA right-drawer destinations.
+- Reset Chat / Chat Statistics / Search in Chat utility behavior in the SnowBunny drawer.
 - Final extension quick-action tray in the composer.
 - Tracker / Story State panels in the ST DOM.
 - Memory Maker proposal popups.
@@ -83,19 +121,8 @@ The custom routing receipt producer is not wired yet; the sheet is ready for it.
 - Full SnowBunny View Context receipt production.
 - Safe historical Retry semantics.
 - Message multi-select behavior.
-- Final phone spacing/theme polish after a real-device visual pass.
+- Final phone spacing/theme polish on a true Android viewport after the shell becomes more complete.
 
-## Immediate validation need
+## Next implementation focus
 
-Before stacking the sliding shell and custom rich systems on top of this pass, verify the live branch on the target mobile/Android environment for:
-
-1. message cards and speaker/avatar layout;
-2. tap-to-open anchored message menu;
-3. Copy/Edit/Delete/Hide/Collapse behavior;
-4. Retry/Continue beneath the latest assistant reply;
-5. attachment `+` opening the actual picker;
-6. composer staying usable when the keyboard opens and when text grows;
-7. View Context opening without also opening the stock prompt popup;
-8. ordinary extensions still seeing the real ST message/composer nodes.
-
-Any visual/interaction correction from that pass should be fixed before building the left/right drawer shell over it.
+Port the actual SnowBunny Library and Current Chat destinations into the new shell rather than mapping them to stock ST lookalikes. The first priorities are Stories/Stand-alone Chats on the left and the current-chat selector plumbing on the right, while preserving the already-settled ownership rules from the reference documents.
