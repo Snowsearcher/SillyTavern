@@ -13,6 +13,7 @@ import { initLoreSemanticIndex } from './lore-semantic-index.js';
 import { initMemoryIntegrity } from './memory-integrity.js';
 import { initMemoryMaker } from './memory-maker.js';
 import { initMemoryRecall } from './memory-recall.js';
+import { initMemoryRecovery } from './memory-recovery.js';
 import { initMemoryStore } from './memory-store.js';
 import { initMemoryUi } from './memory-ui.js';
 import {
@@ -107,6 +108,7 @@ export function init() {
     initStoryLorebooks();
     initLoreRetrieval();
     initMemoryUi();
+    initMemoryRecovery();
     initTrackerUi();
     initAgentsUi();
     initCreateMenu();
