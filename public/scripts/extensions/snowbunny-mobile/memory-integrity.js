@@ -1,6 +1,10 @@
 let initialized = false;
 let reconcileTimer = null;
 
+function context() {
+    return globalThis.SillyTavern?.getContext?.() ?? null;
+}
+
 function store() {
     return globalThis.SnowBunny?.memories ?? null;
 }
@@ -40,6 +44,37 @@ function persistInvalidIds(ids) {
     document.dispatchEvent(new CustomEvent('snowbunny:memory-integrity-changed', { detail: { ownerKey: key, invalidIds: next } }));
 }
 
+function fullVisibleEvidenceMap() {
+    const api = context();
+    const map = new Map();
+    if (!Array.isArray(api?.chat)) return map;
+    const ignore = api?.symbols?.ignore;
+    for (const message of api.chat) {
+        if (!message || message.is_system || (ignore && message.extra?.[ignore])) continue;
+        const identity = globalThis.SnowBunny?.identity?.current?.(message) || message.extra?.snowbunny || {};
+        if (!identity.id) continue;
+        map.set(String(identity.id), {
+            id: String(identity.id),
+            revision: Number(identity.revision) || 0,
+            source: String(identity.source || ''),
+        });
+    }
+    return map;
+}
+
+function sourceStillValidHere(source, currentRefKey, evidenceMap) {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) return true;
+    if (refKey(source.chatRef) !== currentRefKey) return true;
+    const expected = Array.isArray(source.messages) ? source.messages : [];
+    if (!expected.length) return true;
+    for (const item of expected) {
+        if (!item?.id) continue;
+        const actual = evidenceMap.get(String(item.id));
+        if (!actual || actual.revision !== Number(item.revision) || actual.source !== String(item.source || '')) return false;
+    }
+    return true;
+}
+
 async function reconcile() {
     const memoryStore = store();
     const currentRef = memoryStore?.currentRef?.();
@@ -48,11 +83,12 @@ async function reconcile() {
     const memoryState = await memoryStore.read({ fresh: true });
     const previous = invalidIdsForCurrentOwner();
     const next = new Set(previous);
+    const evidenceMap = fullVisibleEvidenceMap();
 
     for (const memory of memoryState.memories || []) {
         const sourceRef = memory?.source?.chatRef;
         if (!sourceRef || refKey(sourceRef) !== currentKey) continue;
-        if (memoryStore.sourceStillValid(memory.source)) next.delete(String(memory.id));
+        if (sourceStillValidHere(memory.source, currentKey, evidenceMap)) next.delete(String(memory.id));
         else next.add(String(memory.id));
     }
 
@@ -80,11 +116,11 @@ function annotate(memories) {
 }
 
 function registerEvents() {
-    const api = globalThis.SillyTavern?.getContext?.();
+    const api = context();
     const source = api?.eventSource;
     const types = api?.eventTypes;
     if (!source?.on || !types) return;
-    for (const name of ['CHAT_CHANGED', 'CHAT_LOADED', 'MESSAGE_EDITED', 'MESSAGE_SWIPED', 'MESSAGE_SWIPE_DELETED', 'MESSAGE_DELETED']) {
+    for (const name of ['CHAT_CHANGED', 'CHAT_LOADED', 'MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_SWIPED', 'MESSAGE_SWIPE_DELETED', 'MESSAGE_DELETED']) {
         const event = types[name];
         if (event) source.on(event, scheduleReconcile);
     }
