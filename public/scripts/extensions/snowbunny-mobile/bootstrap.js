@@ -9,6 +9,7 @@ import {
     reconcileMessageIdentities,
 } from './message-identity.js';
 import { initSnowBunnyShell } from './shell.js';
+import { initShellActions } from './shell-actions.js';
 import {
     deleteChatStateKey,
     initSnowBunnyState,
@@ -52,4 +53,5 @@ export function init() {
     initComposerLayout();
     initMobileShell();
     initSnowBunnyShell();
+    initShellActions();
 }
