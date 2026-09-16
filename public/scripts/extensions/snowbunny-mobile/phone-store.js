@@ -1,5 +1,6 @@
 const FILE_PREFIX = 'snowbunny-phone-';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+const POST_FORMATS = Object.freeze(['status', 'thread', 'community', 'image', 'notice', 'announcement']);
 
 let initialized = false;
 let cacheKey = '';
@@ -210,16 +211,37 @@ function normalizeProfile(value, index = 0) {
     };
 }
 
+function normalizeMetric(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0;
+}
+
+function normalizePostMetrics(value) {
+    const source = plainObject(value) ? value : {};
+    return {
+        likes: normalizeMetric(source.likes),
+        reactions: normalizeMetric(source.reactions),
+        replies: normalizeMetric(source.replies),
+        shares: normalizeMetric(source.shares),
+    };
+}
+
 function normalizePost(value, index = 0) {
     if (!plainObject(value)) return null;
     const text = String(value.text || '').trim();
     const media = normalizeMedia(value.media || (value.photoDescription ? { kind: 'photo', description: value.photoDescription, status: value.photoStatus } : null));
     if (!text && !media) return null;
+    const format = POST_FORMATS.includes(value.format) ? value.format : 'status';
     return {
         id: String(value.id || id('phone_post')),
         authorActorKey: String(value.authorActorKey || value.author || ''),
+        format,
+        title: String(value.title || '').trim().replace(/\s+/g, ' ').slice(0, 180),
+        space: String(value.space || value.community || value.board || value.section || '').trim().replace(/\s+/g, ' ').slice(0, 100),
+        replyTo: String(value.replyTo || value.parentPostId || ''),
         text,
         media,
+        metrics: normalizePostMetrics(value.metrics),
         through: normalizeAnchor(value.through),
         evidence: normalizeEvidence(value.evidence),
         storyTime: String(value.storyTime || ''),
@@ -513,6 +535,7 @@ export function initPhoneStore() {
             anchorVisible,
             actorKey,
             normalizeActor,
+            postFormats: [...POST_FORMATS],
             setSettings,
             upsertContact,
             appendMessage,
