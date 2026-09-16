@@ -191,3 +191,15 @@ Do **not** mechanically force every complex system into this pattern. Scenario, 
 - Bottom sheets should feel deliberate and native on mobile: rounded top corners, strong hierarchy, obvious selected state, smooth slide animation and dimmed background context.
 - Selection should be fast enough that changing a Lorebook, Regex resource, Persona, Model, Preset or similar current-chat resource feels like a couple of taps, not configuration work.
 - SnowBunny can make the selectors visually richer than Tavo, especially for Characters, Personas and image-bearing resources, while preserving Tavo's speed and simplicity.
+
+## Future-self guardrails
+
+When resuming this project in another chat or implementation session:
+
+- Treat the Tavo screenshots supplied by Snow as the ground truth for right-drawer member UX.
+- Do **not** revert to a `Persona + plus only` header. The settled pattern is **Members (N) + Add**, followed by a separate Persona row.
+- Do **not** add cast chips, a duplicate Characters row, or header-avatar clutter elsewhere to compensate. The Members block is the cast surface.
+- Do **not** turn Narrator into an ordinary person card just because SillyTavern is Character-oriented. Narrator is a special built-in identity with its own editor and fields, exposed through Members for usability.
+- Do **not** invent the meaning of Tavo's per-member speech-bubble / crossed-bubble control. Verify it before implementing an equivalent.
+- Keep the distinction between global Character management (left drawer) and current-chat membership (right drawer).
+- Keep Story-level ownership narrow: Story Lorebooks + Story Memories only. Everything else in this right drawer is chat-specific.
