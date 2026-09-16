@@ -34,6 +34,7 @@ import { initShellTransitions } from './shell-transitions.js';
 import { initStoriesLibrary } from './stories-library.js';
 import { initStoryLorebooks } from './story-lorebooks.js';
 import { initStoryOwnership } from './story-ownership.js';
+import { initStorySettings } from './story-settings.js';
 import { initStoryTracker } from './story-tracker.js';
 import {
     deleteChatStateKey,
@@ -98,6 +99,7 @@ export function init() {
     initCyoaNative();
     initChatStatistics();
     initStoriesLibrary();
+    initStorySettings();
     initRecentChats();
     initCodex();
     initStoryLorebooks();
