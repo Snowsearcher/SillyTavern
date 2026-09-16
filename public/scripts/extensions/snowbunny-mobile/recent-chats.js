@@ -98,16 +98,29 @@ async function openRef(ref) {
     await api.openCharacterChat?.(ref.chatId);
 }
 
+function recentSignature(refs) {
+    const current = currentRef();
+    return JSON.stringify(refs.map(ref => ({
+        key: refKey(ref),
+        current: sameRef(ref, current),
+        owner: ownerName(ref),
+        story: storyName(ref),
+    })));
+}
+
 function render() {
     queued = false;
     if (rendering) return;
     const section = recentSection();
     if (!section) return;
     const heading = section.querySelector('.snowbunny-shell-section-title');
-    const refs = Array.isArray(state()?.readGlobal?.()?.recentChats)
-        ? state().readGlobal().recentChats.slice(0, 3)
-        : [];
+    const global = state()?.readGlobal?.() || {};
+    const refs = Array.isArray(global.recentChats) ? global.recentChats.slice(0, 3) : [];
     if (!refs.length && currentRef()) refs.push(currentRef());
+
+    const signature = recentSignature(refs);
+    if (section.dataset.snowbunnyRecentSignature === signature) return;
+    section.dataset.snowbunnyRecentSignature = signature;
 
     rendering = true;
     try {
@@ -137,8 +150,14 @@ function render() {
                 host.style.flex = '0 0 28px';
                 host.style.overflow = 'hidden';
                 host.style.borderRadius = '50%';
-                const image = new Image(); image.src = avatar; image.alt = ''; image.style.width = '100%'; image.style.height = '100%'; image.style.objectFit = 'cover';
-                host.append(image); button.append(host);
+                const image = new Image();
+                image.src = avatar;
+                image.alt = '';
+                image.style.width = '100%';
+                image.style.height = '100%';
+                image.style.objectFit = 'cover';
+                host.append(image);
+                button.append(host);
             } else {
                 button.append(icon(ref.kind === 'group' ? 'fa-users' : 'fa-message'));
             }
@@ -172,6 +191,8 @@ function registerEvents() {
         const event = types[name];
         if (event) source.on(event, () => {
             rememberCurrent();
+            const section = recentSection();
+            if (section) delete section.dataset.snowbunnyRecentSignature;
             queueRender();
         });
     }
@@ -188,5 +209,9 @@ export function initRecentChats() {
         observer = new MutationObserver(queueRender);
         observer.observe(drawer, { childList: true, subtree: true });
     }
-    document.addEventListener('snowbunny:lorebook-bindings-changed', queueRender);
+    document.addEventListener('snowbunny:lorebook-bindings-changed', () => {
+        const section = recentSection();
+        if (section) delete section.dataset.snowbunnyRecentSignature;
+        queueRender();
+    });
 }
