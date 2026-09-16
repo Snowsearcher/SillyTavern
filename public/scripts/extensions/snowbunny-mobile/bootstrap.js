@@ -33,6 +33,7 @@ import { initShellActions } from './shell-actions.js';
 import { initShellTransitions } from './shell-transitions.js';
 import { initStoriesLibrary } from './stories-library.js';
 import { initStoryLorebooks } from './story-lorebooks.js';
+import { initStoryOwnership } from './story-ownership.js';
 import { initStoryTracker } from './story-tracker.js';
 import {
     deleteChatStateKey,
@@ -80,6 +81,7 @@ export function init() {
     initTrackerStore();
     initMemoryStore();
     initMemoryIntegrity();
+    initStoryOwnership();
     initStoryTracker();
     initMemoryMaker();
     initMemoryRecall();
