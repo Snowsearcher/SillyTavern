@@ -39,6 +39,8 @@ import { initNarrator } from './narrator.js';
 import { initPersonaAuthoring } from './persona-authoring.js';
 import { initPersonaLibrary } from './persona-library.js';
 import { initPersonaSelector } from './persona-selector.js';
+import { initPhoneEvidence } from './phone-evidence.js';
+import { initPhoneStore } from './phone-store.js';
 import { initPresetEditor } from './preset-editor.js';
 import { initRecentChats } from './recent-chats.js';
 import { initRegexCompatibilityGuard } from './regex-compat-guard.js';
@@ -101,6 +103,8 @@ export function init() {
     initLoreSemanticIndex();
     initMessageIdentity();
     initTrackerStore();
+    initPhoneStore();
+    initPhoneEvidence();
     initMemoryStore();
     initAgentStore();
     initMemoryIntegrity();
