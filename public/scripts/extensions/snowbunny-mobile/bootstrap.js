@@ -45,6 +45,7 @@ import { initPhoneEvidence } from './phone-evidence.js';
 import { initPhoneRouting } from './phone-routing.js';
 import { initPhoneSocialNetwork } from './phone-social-network.js';
 import { initPhoneSocialUi } from './phone-social-ui.js';
+import { initPhoneSocialWorld } from './phone-social-world.js';
 import { initPhoneStore } from './phone-store.js';
 import { initPhoneUi } from './phone-ui.js';
 import { initPhoneUpkeep } from './phone-upkeep.js';
@@ -112,6 +113,7 @@ export function init() {
     initTrackerStore();
     initPhoneStore();
     initPhoneSocialNetwork();
+    initPhoneSocialWorld();
     initPhoneEvidence();
     initPhoneRouting();
     initPhoneConversation();
