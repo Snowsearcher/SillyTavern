@@ -12,6 +12,7 @@ import {
 import { initPersonaSelector } from './persona-selector.js';
 import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
+import { initShellTransitions } from './shell-transitions.js';
 import {
     deleteChatStateKey,
     initSnowBunnyState,
@@ -58,4 +59,5 @@ export function init() {
     initShellActions();
     initPersonaSelector();
     initChatStatistics();
+    initShellTransitions();
 }
