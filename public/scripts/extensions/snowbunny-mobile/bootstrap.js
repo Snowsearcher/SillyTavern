@@ -18,6 +18,7 @@ import {
 } from './message-identity.js';
 import { initMemberSelector } from './member-selector.js';
 import { initModelSelector } from './model-selector.js';
+import { initNarrator } from './narrator.js';
 import { initPersonaSelector } from './persona-selector.js';
 import { initRecentChats } from './recent-chats.js';
 import { initScenario } from './scenario.js';
@@ -25,6 +26,7 @@ import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
 import { initShellTransitions } from './shell-transitions.js';
 import { initStoriesLibrary } from './stories-library.js';
+import { initStoryLorebooks } from './story-lorebooks.js';
 import {
     deleteChatStateKey,
     initSnowBunnyState,
@@ -72,6 +74,7 @@ export function init() {
     initSnowBunnyShell();
     initShellActions();
     initMemberSelector();
+    initNarrator();
     initModelSelector();
     initPersonaSelector();
     initScenario();
@@ -80,6 +83,7 @@ export function init() {
     initStoriesLibrary();
     initRecentChats();
     initCodex();
+    initStoryLorebooks();
     initLoreRetrieval();
     initCreateMenu();
     initCreateCodexBridge();
