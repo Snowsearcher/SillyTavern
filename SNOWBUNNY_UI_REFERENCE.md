@@ -197,11 +197,10 @@ Preserve the interaction and information hierarchy shown in the screenshots:
 - Search field for Stories.
 - Filter and sort controls.
 - Support both **visual grid** and **compact list** browsing. Grid is important because Story cover art is a core recognition/navigation feature, while list mode is useful when the library grows.
+- The view-switch icon shown in the Story screenshots is specifically the **visual/compact view toggle**. It switches between large cover-focused cards and the smaller compact list presentation; it is not a people/group/cast control.
 - Story cards show recognizable cover art, Story title, chat count and recent/last-updated information.
 - Keep a prominent **Create** action.
 - Do not expose every chat from every Story here. Opening a Story is how the user reaches its older chats.
-
-Unknown icon behavior from the old screenshots should not be copied blindly. Preserve the layout idea, then verify what any ambiguous switch/swap icon actually did before implementing it.
 
 ### Story interior / Story chat browser
 
@@ -214,6 +213,7 @@ Preserve the old SnowBunny Story interior as the visual baseline:
 - Clearly indicate the currently open/selected chat without turning every card into a noisy status panel.
 - Prominent **New Chat** action.
 - Archived chats remain collected/collapsed at the bottom when present.
+- The view-switch control also belongs here where useful, switching the Story's chat browser between a more visual cover/card presentation and a compact list presentation.
 
 The Story interior is primarily a **chat browser**, not a settings dashboard.
 
@@ -225,14 +225,25 @@ Some old SnowBunny controls no longer match the architecture we have now settled
 - Story-wide fiction ownership is only **Lorebooks + Memories**. Old Story-level Characters, Persona, Model, Preset, Agents, Theme, API defaults, etc. are obsolete and must not return through `Story Settings`.
 - The Story overflow/menu is the correct place to reach Story-owned configuration. At minimum it can provide presentation management (`Rename, tags & cover` / edit details), Story settings for **Story Lorebooks and Story Memories**, Statistics, Archive and Delete. Export can also live here or in the appropriate Story management surface.
 - Exact presentation of Story Lorebooks and Story Memories inside that menu is still open: they may be direct menu entries or live inside a small Story Settings screen. What is fixed is that only those two fiction systems are Story-wide.
-- The old people/group icon in the Story header should not be assumed to represent Story cast in the new fork. Story cast is no longer a Story-owned setting. Verify or repurpose/remove that icon rather than preserving obsolete behavior.
+- The icon previously misread as a people/group icon is the **view-mode switch**. Preserve that job. Do not repurpose it for Story cast or remove it on the assumption that it represented people.
+
+### Reusable visual / compact view pattern
+
+SnowBunny already used the same basic view switch in other visual libraries, including Characters. Treat this as a reusable browsing pattern rather than a one-off Story control:
+
+- image-heavy resources can offer **Visual / big-cover** mode for quick recognition;
+- the same library can offer **Compact / list** mode for denser browsing;
+- switching modes changes presentation only, not the underlying resource collection, filters, selection state, or sort order;
+- reuse this pattern for Characters, Personas, Lorebooks/Codex and other resource libraries when it genuinely helps;
+- remember the user's chosen view per library where practical instead of forcing the same mode every time.
 
 ## Visual quality notes from the reference
 
 - Favor large rows/cards over tiny controls.
 - Use clear spacing and section separators rather than dense ST-style control piles.
 - Show current cast only in the compact Members section; do not duplicate it elsewhere in the drawer or main chat UI.
-- Story covers are functional navigation, not decoration. Keep them large enough to recognize in grid mode.
+- Story covers are functional navigation, not decoration. Keep them large enough to recognize in visual mode.
+- Preserve the Visual/Compact switch as a recurring SnowBunny library affordance instead of collapsing everything into one list style.
 - Bottom sheets should feel deliberate and native on mobile: rounded top corners, strong hierarchy, obvious selected state, smooth slide animation and dimmed background context.
 - Selection should be fast enough that changing a Lorebook, Regex resource, Persona, Model, Preset or similar current-chat resource feels like a couple of taps, not configuration work.
 - SnowBunny can make the selectors visually richer than Tavo, especially for Characters, Personas and image-bearing resources, while preserving Tavo's speed and simplicity.
@@ -243,6 +254,7 @@ When resuming this project in another chat or implementation session:
 
 - Treat the Tavo screenshots supplied by Snow as the ground truth for right-drawer member UX.
 - Treat Snow's Story screenshots as the ground truth for the Story selector/interior visual direction unless Snow deliberately changes them.
+- Do **not** misread the Story view-switch icon as a group/people/cast control. It switches between compact and large-cover/visual views, and this pattern is reused in other resource libraries such as Characters.
 - Do **not** revert to a `Persona + plus only` header. The settled pattern is **Members (N) + Add**, followed by a separate Persona row.
 - Do **not** add cast chips, a duplicate Characters row, or header-avatar clutter elsewhere to compensate. The Members block is the cast surface.
 - Do **not** turn Narrator into an ordinary person card just because SillyTavern is Character-oriented. Narrator is a special built-in identity with its own editor and fields, exposed through Members for usability.
