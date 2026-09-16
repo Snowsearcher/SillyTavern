@@ -340,6 +340,16 @@ function sourceStillValid(source) {
     return true;
 }
 
+async function phoneSourceStillValid(source) {
+    const expected = source?.phoneEvidence;
+    if (!expected || typeof expected !== 'object' || Array.isArray(expected) || !Object.keys(expected).length) return true;
+    const sourceRef = source?.phoneChatRef;
+    if (sourceRef && refKey(sourceRef) !== refKey(currentRef())) return true;
+    const validate = globalThis.SnowBunny?.phoneEvidence?.validate;
+    if (typeof validate !== 'function') return false;
+    return await validate(expected);
+}
+
 async function addMemory({ title, details, source = null, lineage = null } = {}) {
     const state = await readCurrent();
     const order = Math.max(0, ...state.memories.map(memory => Number(memory.order) || 0)) + 1;
@@ -423,6 +433,7 @@ async function acceptProposal(proposalId) {
     if (proposal.baseVersion !== state.version) throw new Error('Memories changed after this suggestion was made. Ask Memory Maker to review again.');
     if (proposal.needsReview) throw new Error(proposal.staleReason || 'This suggestion needs review again before it can be saved.');
     if (!sourceStillValid(proposal.source)) throw new Error('The story text behind this suggestion changed. Review it again before saving.');
+    if (!await phoneSourceStillValid(proposal.source)) throw new Error('The Pocket Phone events behind this suggestion changed. Review it again before saving.');
 
     const targets = state.memories.filter(memory => proposal.targetIds.includes(memory.id));
     if (!sameExpected(targets, proposal.expected)) throw new Error('A Memory in this suggestion changed. Review it again before saving.');
@@ -500,6 +511,7 @@ function initMemoryStore() {
             rejectProposal,
             sourceSnapshot,
             sourceStillValid,
+            phoneSourceStillValid,
             owner: ownerDescriptor,
             storyOwner: storyOwnerDescriptor,
             standaloneOwner: standaloneOwnerDescriptor,
