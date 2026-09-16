@@ -10,6 +10,7 @@ import { initLorebookStore } from './lorebook-store.js';
 import { initLoreRetrieval } from './lore-retrieval.js';
 import { initLoreSemanticIndex } from './lore-semantic-index.js';
 import { initMemoryMaker } from './memory-maker.js';
+import { initMemoryRecall } from './memory-recall.js';
 import { initMemoryStore } from './memory-store.js';
 import { initMemoryUi } from './memory-ui.js';
 import {
@@ -30,6 +31,7 @@ import { initShellActions } from './shell-actions.js';
 import { initShellTransitions } from './shell-transitions.js';
 import { initStoriesLibrary } from './stories-library.js';
 import { initStoryLorebooks } from './story-lorebooks.js';
+import { initStoryTracker } from './story-tracker.js';
 import {
     deleteChatStateKey,
     initSnowBunnyState,
@@ -39,6 +41,8 @@ import {
     readGlobalState,
     SNOWBUNNY_STATE_VERSION,
 } from './state.js';
+import { initTrackerStore } from './tracker-store.js';
+import { initTrackerUi } from './tracker-ui.js';
 
 function installNamespace() {
     const existing = globalThis.SnowBunny && typeof globalThis.SnowBunny === 'object'
@@ -71,8 +75,11 @@ export function init() {
     initLorebookStore();
     initLoreSemanticIndex();
     initMessageIdentity();
+    initTrackerStore();
     initMemoryStore();
+    initStoryTracker();
     initMemoryMaker();
+    initMemoryRecall();
     initContextView();
     initComposerLayout();
     initMobileShell();
@@ -91,6 +98,7 @@ export function init() {
     initStoryLorebooks();
     initLoreRetrieval();
     initMemoryUi();
+    initTrackerUi();
     initCreateMenu();
     initCreateCodexBridge();
     initShellTransitions();
