@@ -141,6 +141,12 @@ function profilePicture(profile) {
     return '';
 }
 
+function contactPicture(contact) {
+    const explicit = String(contact?.presentation?.picture || '').trim();
+    if (explicit) return explicit;
+    return actorPicture(contact?.actor);
+}
+
 function saveStoryProfilePicture(profileId, picture) {
     const api = stateApi();
     const storyId = String(api?.readChat?.()?.storyId || '');
@@ -189,6 +195,28 @@ async function choosePublicProfilePicture(profileId, options = {}) {
     return setPublicProfilePicture(profileId, path, options);
 }
 
+async function setContactPicture(contactId, picture) {
+    const store = phone();
+    if (!store?.mutate) throw new Error('Pocket Phone is unavailable.');
+    const idValue = String(contactId || '').trim();
+    if (!idValue) throw new Error('Choose a private contact first.');
+    const path = String(picture || '').trim().slice(0, 2048);
+    return (await store.mutate(draft => {
+        const contact = (draft.contacts || []).find(item => String(item.id || '') === idValue && !item.archived);
+        if (!contact) throw new Error('That private contact is no longer available on this Story branch.');
+        contact.presentation = { ...(contact.presentation || {}), picture: path };
+        contact.updatedAt = Date.now();
+        return { id: contact.id, actorKey: store.actorKey?.(contact.actor) || '' };
+    })).result;
+}
+
+async function chooseContactPicture(contactId, options = {}) {
+    const file = await pickImage();
+    if (!file) return null;
+    const path = await uploadImage(file, { prefix: options.prefix || 'contact-profile' });
+    return setContactPicture(contactId, path);
+}
+
 export function initPhoneArtwork() {
     if (initialized) return;
     initialized = true;
@@ -200,9 +228,12 @@ export function initPhoneArtwork() {
             uploadImage,
             pickAndUpload,
             profilePicture,
+            contactPicture,
             storyProfilePicture,
             setPublicProfilePicture,
             choosePublicProfilePicture,
+            setContactPicture,
+            chooseContactPicture,
             maxImageBytes: MAX_IMAGE_BYTES,
         },
     };
