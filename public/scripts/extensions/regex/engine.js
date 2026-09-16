@@ -90,13 +90,37 @@ export class RegexProvider {
 }
 
 /**
- * Retrieves the list of regex scripts by combining the scripts from the extension settings and the character data
+ * Returns SnowBunny's current-chat rules without making the core Regex
+ * extension own SnowBunny state. The adapter is optional, so upstream Regex
+ * continues to work normally when SnowBunny is absent.
+ *
+ * @param {GetRegexScriptsOptions} options Retrieval options
+ * @returns {RegexScript[]}
+ */
+function getSnowBunnyChatScripts(options) {
+    try {
+        const scripts = globalThis.SnowBunny?.regex?.getChatScriptsForEngine?.(options);
+        return Array.isArray(scripts) ? scripts : [];
+    } catch (error) {
+        console.warn('Regex: SnowBunny current-chat rule adapter failed.', error);
+        return [];
+    }
+}
+
+/**
+ * Retrieves the list of regex scripts by combining the scripts from the extension settings and the character data.
+ * SnowBunny current-chat rules intentionally run after global rules and before preset/character compatibility rules.
  *
  * @param {GetRegexScriptsOptions} options Options for retrieving the regex scripts
  * @returns {RegexScript[]} An array of regex scripts, where each script is an object containing the necessary information.
  */
 export function getRegexScripts(options = DEFAULT_GET_REGEX_SCRIPTS_OPTIONS) {
-    return [...Object.values(SCRIPT_TYPES).flatMap(type => getScriptsByType(type, options))];
+    return [
+        ...getScriptsByType(SCRIPT_TYPES.GLOBAL, options),
+        ...getSnowBunnyChatScripts(options),
+        ...getScriptsByType(SCRIPT_TYPES.PRESET, options),
+        ...getScriptsByType(SCRIPT_TYPES.SCOPED, options),
+    ];
 }
 
 /**
@@ -210,7 +234,7 @@ export function disallowScopedScripts(character) {
  * Check if preset's regexes are allowed to be used
  * @param {string} apiId API ID
  * @param {string} presetName Preset name
- * @returns {boolean} True if allowed, false if not
+ * @returns {boolean} True if allowed, false otherwise
  */
 export function isPresetScriptsAllowed(apiId, presetName) {
     if (!apiId || !presetName) {
@@ -384,7 +408,7 @@ export function getRegexedString(rawString, placement, { characterOverride, isMa
  * Runs the provided regex script on the given string
  * @param {RegexScript} regexScript The regex script to run
  * @param {string} rawString The string to run the regex script on
- * @param {RegexScriptParams} params The parameters to use for the regex script
+ * @param {RegexScriptParams} params The parameters to use for the regex filter
  * @returns {string} The new string
  * @typedef {{characterOverride?: string}} RegexScriptParams The parameters to use for the regex script
  */
