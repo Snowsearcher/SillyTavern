@@ -546,8 +546,8 @@ async function openStandalone() {
     const toolbar = el('div', 'snowbunny-library-toolbar');
     const search = el('input', 'snowbunny-library-search'); search.type = 'search'; search.placeholder = 'Search stand-alone chats';
     const refresh = el('button', 'snowbunny-library-primary'); refresh.type = 'button'; refresh.append(icon('fa-rotate'));
-    toolbar.append(search, refresh); body.append(toolbar);
-    const list = el('div'); body.append(list); root.append(body);
+    toolbar.append(search, refresh); body.append(toolbar); root.append(body);
+    const list = el('div'); body.append(list);
 
     const load = async fresh => {
         list.replaceChildren(el('div', 'snowbunny-library-empty', 'Loading chats…'));
@@ -567,7 +567,7 @@ async function openStandalone() {
 
 function openStories() {
     const root = workspace();
-    let view = globalState().storyLibraryView === 'compact' ? 'compact' : 'visual';
+    const view = globalState().storyLibraryView === 'compact' ? 'compact' : 'visual';
     const toggle = viewSwitch(view, next => { state()?.patchGlobal?.({ storyLibraryView: next }); openStories(); });
     const create = el('button'); create.type = 'button'; create.title = 'Create Story'; create.append(icon('fa-plus'));
     create.addEventListener('click', () => storyEditor({ onSave: openStories }));
@@ -585,21 +585,12 @@ function openStories() {
     const grid = el('div', `snowbunny-story-grid${view === 'compact' ? ' compact' : ''}`); body.append(grid); root.append(body);
     const render = () => {
         const query = search.value.trim().toLowerCase();
-        const stories = storyRecords().filter(story => !query || `${story.title} ${(story.tags || []).join(' ')}`.toLowerCase().includes(query)).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+        const records = storyRecords().filter(story => !query || `${story.title} ${(story.tags || []).join(' ')}`.toLowerCase().includes(query)).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
         grid.replaceChildren();
-        if (!stories.length) grid.append(el('div', 'snowbunny-library-empty', 'No Stories yet. Create one here, then add chats as you work.'));
-        for (const story of stories) grid.append(storyCard(story));
+        if (!records.length) grid.append(el('div', 'snowbunny-library-empty', 'No Stories yet. Create one here, then add chats as you work.'));
+        for (const story of records) grid.append(storyCard(story));
     };
     search.addEventListener('input', render); render();
-}
-
-function viewSwitch(view, onChange) {
-    const host = el('div', 'snowbunny-library-view');
-    for (const [name, iconName] of [['visual', 'fa-table-cells-large'], ['compact', 'fa-list']]) {
-        const button = el('button'); button.type = 'button'; if (view === name) button.classList.add('active'); button.append(icon(iconName));
-        button.addEventListener('click', () => onChange(name)); host.append(button);
-    }
-    return host;
 }
 
 function leftRow(label) {
@@ -629,9 +620,9 @@ function updateRenamedRef(data) {
     const oldChat = String(data.oldFileName || '').replace(/\.jsonl$/i, '');
     const newChat = String(data.newFileName || '').replace(/\.jsonl$/i, '');
     if (!oldChat || !newChat) return;
-    const stories = storyRecords();
+    const records = storyRecords();
     let changed = false;
-    for (const story of stories) {
+    for (const story of records) {
         for (const ref of story.chatRefs || []) {
             const ownerMatches = data.groupId
                 ? ref.kind === 'group' && String(ref.owner) === String(data.groupId)
@@ -639,7 +630,7 @@ function updateRenamedRef(data) {
             if (ownerMatches && ref.chatId === oldChat) { ref.chatId = newChat; story.updatedAt = Date.now(); changed = true; }
         }
     }
-    if (changed) saveStories(stories);
+    if (changed) saveStories(records);
 }
 
 function registerEvents() {
