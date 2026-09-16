@@ -45,6 +45,7 @@ import { initPhoneConversation } from './phone-conversation.js';
 import { initPhoneEvidence } from './phone-evidence.js';
 import { initPhoneRouting } from './phone-routing.js';
 import { initPhoneSocialActions } from './phone-social-actions.js';
+import { initPhoneSocialArtworkUi } from './phone-social-artwork-ui.js';
 import { initPhoneSocialLifecycle } from './phone-social-lifecycle.js';
 import { initPhoneSocialNetwork } from './phone-social-network.js';
 import { initPhoneSocialProfileUi } from './phone-social-profile-ui.js';
@@ -127,6 +128,7 @@ export function init() {
     initPhoneUi();
     initPhoneSocialUi();
     initPhoneSocialProfileUi();
+    initPhoneSocialArtworkUi();
     initPhoneSocialLifecycle();
     initPhoneAgentsUi();
     initMemoryStore();
