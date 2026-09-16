@@ -38,6 +38,7 @@ jobs:
           npx eslint --quiet --rule 'eol-last: off'
           public/scripts/extensions/snowbunny-mobile/phone-store.js
           public/scripts/extensions/snowbunny-mobile/phone-artwork.js
+          public/scripts/extensions/snowbunny-mobile/phone-artwork-library.js
           public/scripts/extensions/snowbunny-mobile/phone-artwork-manager-ui.js
           public/scripts/extensions/snowbunny-mobile/phone-social-network.js
           public/scripts/extensions/snowbunny-mobile/phone-social-actions.js
