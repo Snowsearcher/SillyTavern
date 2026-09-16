@@ -8,6 +8,7 @@ import {
     messageFingerprint,
     reconcileMessageIdentities,
 } from './message-identity.js';
+import { initSnowBunnyShell } from './shell.js';
 import {
     deleteChatStateKey,
     initSnowBunnyState,
@@ -50,4 +51,5 @@ export function init() {
     initContextView();
     initComposerLayout();
     initMobileShell();
+    initSnowBunnyShell();
 }
