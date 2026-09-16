@@ -2,6 +2,7 @@ import { initAgentStore } from './agent-store.js';
 import { initAgentsUi } from './agents-ui.js';
 import { initCharacterAuthoring } from './character-authoring.js';
 import { initCharacterCodexLinks } from './character-codex-links.js';
+import { initCharacterLibrary } from './character-library.js';
 import { initChatStatistics } from './chat-statistics.js';
 import { initCodex } from './codex.js';
 import { initComposerLayout } from './composer-layout.js';
@@ -111,6 +112,7 @@ export function init() {
     initComposerLayout();
     initMobileShell();
     initSnowBunnyShell();
+    initCharacterLibrary();
     initResponseConfig();
     initShellActions();
     initMemberSelector();
