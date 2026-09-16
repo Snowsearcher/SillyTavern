@@ -2,210 +2,235 @@
 
 This file records what is actually implemented on `snowbunny-mobile`, separate from the design/reference documents.
 
-## Implemented in the current pass
-
-### Live SillyTavern chat shell
+## Live SillyTavern chat shell
 
 `public/scripts/extensions/snowbunny-mobile/index.js` works directly on SillyTavern's real chat DOM and real composer.
+
+Implemented:
 
 - SnowBunny mobile message-card presentation over `.mes` / `.mes_block`.
 - Distinct user/system presentation classes without rewriting stored prose.
 - Stock permanent message-action clutter hidden in normal reading mode while the original nodes remain for extension/core compatibility.
 - Tap message -> anchored SnowBunny action menu.
-- Mapped actions: Copy, Edit, Use as Draft, Delete, latest-safe Retry, Hide/Show, Collapse/Expand, View Context and Replies where applicable.
-- Existing extension-added `.extraMesButtons` remain reachable under the menu's secondary `More` area.
-- Latest assistant reply gets standalone Retry and Continue controls beneath it.
+- Copy, Edit, Use as Draft, Delete, latest-safe Retry, Hide/Show, Collapse/Expand, View Context and Replies where applicable.
+- Extension-added `.extraMesButtons` remain reachable under the secondary `More` area.
+- Latest assistant reply gets standalone Retry and Continue controls.
 - The actual ST `#send_textarea` remains the text input.
-- Added attachment `+` invokes ST's actual file input.
-- Stock options/extension controls remain compatible with the real composer.
-- Observer reconciliation is idempotent; SnowBunny-added tail controls are not recreated in a mutation loop.
-- A visual-width bug where an extra composer control (for example the magic-wand action) could overlap the writing field was fixed by measuring the real left-control cluster instead of assuming one fixed-width button.
+- Attachment `+` invokes ST's actual file picker.
+- Stock extension/composer actions remain compatible with the real composer.
+- Observer reconciliation is idempotent.
+- The leaked stock message ellipsis/pencil and the magic-wand/text-area collision found in the first visual pass are fixed.
 
-### First real SnowBunny navigation shell
+## SnowBunny outer shell
 
-`shell.js` replaces the stock SillyTavern mobile icon parade with the first SnowBunny-owned outer shell.
+`shell.js` replaces the stock SillyTavern mobile icon parade with SnowBunny-owned navigation.
 
-Implemented behavior:
+Implemented:
 
 - retractable top strip in the settled order: Stories, Response, API, Codex, Look, Extensions;
-- stock top icon parade hidden only in SnowBunny mobile mode while ST's real drawers remain alive underneath for temporary bridge routes;
+- stock top icon parade hidden only in SnowBunny mobile mode;
 - Response routes to ST's real AI Response Configuration backend;
-- API routes to ST's real API/connection backend;
-- Look opens a SnowBunny bottom sheet that routes to the current Background and Theme controls while the dedicated Appearance editor is ported;
-- Extensions routes to ST's real extension management surface;
-- Stories and Codex are visibly present in their settled positions but intentionally disabled until their actual SnowBunny surfaces are wired, rather than being falsely mapped to unrelated ST pages;
-- left and right SnowBunny drawers slide over the story with a dimmed backdrop;
-- both drawers can be opened with small edge handles or an edge swipe;
-- left drawer establishes the settled Library hierarchy and bottom quick-action row;
-- right drawer establishes Members + Persona followed by Model, Preset, Lorebooks, Scenario, Regex, Memory, Agents and CYOA, plus the three pinned chat utilities;
-- current Character/speaker, Persona name, active model and active preset are read from the real ST state where available;
-- unfinished SnowBunny-owned resources are deliberately disabled instead of pretending stock World Info/other ST systems are the same thing;
-- top-strip collapsed state persists through the namespaced SnowBunny global state adapter;
-- `shell-transitions.js` coordinates quick sheets, the sliding drawer and temporary native editors so Search jumps and Persona/Preset editor routes do not leave stacked panels on screen.
+- API routes to ST's real connection/backend controls;
+- Look routes to Background/Theme controls while the dedicated SnowBunny Appearance editor is still being ported;
+- Extensions routes to real ST extension management;
+- left and right SnowBunny sliding drawers with dimmed backdrop and edge access;
+- left Library hierarchy and bottom quick-action row;
+- right Current Chat hierarchy: Members, Persona, Model, Preset, Lorebooks, Scenario, Regex, Memory, Agents, CYOA;
+- pinned Reset Chat, Statistics and Search utilities;
+- top-strip collapsed state persisted through SnowBunny global state;
+- panel/sheet transition coordination through `shell-transitions.js`.
 
-This is the outer-shell foundation, not the final Stories/Codex/Current Chat implementation. The important structural change is that the stock mobile chrome is no longer the intended user-facing navigation layer.
+Codex/Lorebooks are still deliberately not mapped to ST World Info.
 
-### Current-chat Persona selector
+## Members / current-chat cast
 
-`persona-selector.js` wires the right-drawer Persona row to SillyTavern's real Persona system instead of creating a second Persona store.
+`member-selector.js` implements the first real SnowBunny Members backend adapter.
 
-- loads the actual Persona list through ST's avatar/persona API;
-- uses the real Persona names, descriptions and default-Persona metadata;
-- shows portrait + name rows in a SnowBunny bottom sheet with search;
-- selecting a Persona calls ST's real `setUserAvatar` path;
-- the selected Persona is explicitly locked into the current chat through ST's `chat_metadata.persona` mechanism, matching SnowBunny's current-chat ownership rule;
-- the pencil action still reaches the full Persona manager while the richer SnowBunny global Persona editor is ported.
+- `Members (N) + Add` is the current-chat cast surface.
+- Add opens a portrait/name multi-select Character sheet with search and favorites-first ordering.
+- Existing current members are preselected.
+- For an ST group-backed chat, Apply writes the real `group.members` array and saves it through ST's group machinery.
+- Per-member participation/mute maps to ST `disabled_members`, so the control affects real automatic group reply selection rather than being cosmetic.
+- A chat is prevented from muting/removing its last ordinary Character member.
+- Adding another ordinary Character to a legacy single-Character ST chat uses a safe promotion flow: save/snapshot the original, create a group-backed multi-member copy, copy history/metadata, record provenance, open the copy, and leave the original Character chat untouched.
+- The promoted multi-member backend currently uses ST natural activation + APPEND card mode.
 
-`No Persona` is not faked yet because ST's default/global Persona behavior must be bypassed correctly before that option can be truthful.
+The mapping is documented in `SNOWBUNNY_MEMBERS_IMPLEMENTATION_REFERENCE.md`.
 
-### Current-chat Model selector
+Still missing here: the special Narrator member adapter. Narrator must remain a protected built-in SnowBunny identity and must not be faked as an ST Character.
 
-`model-selector.js` makes the right-drawer Model row functional without applying SillyTavern Connection Profiles wholesale.
+## Persona
 
-That distinction is deliberate: ST Connection Profiles can also apply Preset, Regex, prompt-processing and other fields, which would violate SnowBunny's separate current-chat ownership for those systems.
+`persona-selector.js` uses SillyTavern's real Persona records and selection machinery.
 
-The current safe adapter:
+- searchable portrait/name sheet;
+- default Persona surfaced as favorite;
+- selected Persona locked to the current chat through ST chat metadata;
+- chat switching reapplies that chat's Persona runtime context;
+- `No Persona` is now a real per-chat option;
+- No Persona suppresses Persona description/lorebook context in memory for that chat without persisting ST's global Persona position as NONE;
+- leaving a No Persona chat restores the appropriate active/locked Persona context instead of leaking suppression into another chat;
+- pencil route reaches the full Persona manager until the SnowBunny global editor is ported.
 
-- reads the real ST provider/model controls instead of maintaining a second model catalog truth;
-- for Chat Completion, builds a searchable catalog from the model selectors ST has loaded for its supported providers;
-- shows provider identity with each model and can switch the real ST Chat Completion provider source plus the real model control;
-- for Text Completion, uses the currently active connection's real model selector instead of pretending it can safely jump between unrelated server profiles yet;
-- stores only the current chat's model/provider selector reference in `chat_metadata.snowbunny`;
-- reapplies that chat's saved model when switching chats through ST's own controls;
-- captures native model/provider changes back into the current chat's SnowBunny state;
-- supports global favorite model references for favorites-first browsing;
-- includes a direct route to API management from the model sheet.
+## Model
 
-Still missing from Model: selecting among multiple saved connection profiles for the same/different provider. That requires a SnowBunny adapter that applies only connection/model fields from ST Connection Profiles while explicitly excluding Preset/Regex/fiction controls.
+`model-selector.js` makes the right-drawer Model row functional without applying ST Connection Profiles wholesale.
 
-### Current-chat Preset selector
+- real ST provider/model controls remain canonical;
+- Chat Completion catalog is searchable across loaded provider model selectors;
+- provider identity is shown with models;
+- provider source + actual model control are changed through ST's established controls;
+- Text Completion uses the active connection's actual model selector;
+- current chat stores only its model/provider selection reference under SnowBunny metadata;
+- chat switching reapplies the saved model through ST controls;
+- native model changes are captured back into chat state;
+- global favorites support favorites-first browsing;
+- model sheet links to API management.
 
-`shell-actions.js` makes the right-drawer Preset row functional without building a second preset engine.
+Still missing: safe switching among multiple saved connection profiles. That adapter must apply only connection/model fields and must explicitly exclude Preset, Regex and fiction-system fields from ST Connection Profiles.
 
-- reads the real preset selector for the active ST API type;
-- opens a SnowBunny search/list sheet;
-- choosing a preset changes the real ST preset select so ST's established persistence/request path remains authoritative;
-- SnowBunny stores only the current chat's selected preset reference in `chat_metadata.snowbunny`;
-- when the chat changes, SnowBunny reapplies that chat's preset through the real ST selector;
-- native preset changes are captured back into the current chat's SnowBunny selection state;
-- the edit/pencil path currently opens ST's real AI/preset controls until the dedicated phone preset editor is ported.
+## Preset
 
-### Current-chat Scenario
+`shell-actions.js` implements current-chat quick Preset selection over ST's real preset machinery.
 
-`scenario.js` ports the settled SnowBunny four-field Scenario model directly into the current chat.
+- searchable preset sheet;
+- selection changes the actual ST preset selector;
+- current chat stores only its preset reference;
+- switching chats reapplies that preset through ST;
+- native preset changes are captured back into chat state;
+- edit route temporarily opens ST's real preset/AI controls.
 
-- `What this story is about`;
-- `Genre and focus`;
-- `For the writer to know`;
-- `Important directions`;
-- per-chat `Use this Scenario` toggle;
-- Reset action in the editor;
-- canonical Scenario data stored in `chat_metadata.snowbunny`;
-- when enabled, Scenario is supplied to the main writer through ST's real extension-prompt mechanism as a system prompt;
-- Scenario is explicitly excluded from World Info scanning;
-- changing chats replaces the writer Scenario with that chat's own stored Scenario rather than sharing it at Story level.
+Still missing: the dedicated phone-first Preset editor with module toggles, reorder, import/export and Utility prompts.
 
-This is writer routing only. Memory Maker and other SnowBunny side systems will use their own explicit routing and must not inherit Scenario just because the Story Writer sees it.
+## Scenario
 
-### Current-chat utilities
+`scenario.js` ports the settled four-field current-chat Scenario model:
 
-The pinned right-drawer utilities are no longer placeholder rows:
+- What this story is about;
+- Genre and focus;
+- For the writer to know;
+- Important directions;
+- Use this Scenario toggle;
+- Reset action.
 
-- **Reset Chat** clears the current message history through ST's real `clearChat` path while keeping the chat itself;
-- **Search in Chat** searches canonical message text and jumps/highlights the chosen result without changing history;
-- **Chat Statistics** opens a SnowBunny report with message counts, word/character counts, alternate replies, hidden messages, media, and per-speaker message counts.
+Scenario data lives in `chat_metadata.snowbunny`. When enabled it is routed to the Story Writer through ST's extension-prompt mechanism as a system prompt with World Info scanning disabled. It is not Story-shared.
 
-### SnowBunny compatibility namespace
+## Native CYOA
 
-`bootstrap.js` initializes one `globalThis.SnowBunny` namespace instead of letting custom systems invent unrelated globals.
+`cyoa-native.js` implements the SnowBunny CYOA/story-choice system without requiring Regex ownership.
 
-Current namespaces:
+- per-chat Story Choices toggle, default off;
+- dedicated writer instruction through ST extension-prompt routing;
+- exactly one valid `<choicecard>` with 2 to 5 paths;
+- path types dialogue/action/direction;
+- dialogue is sent quoted, action/direction plain;
+- valid raw CYOA markup is removed from display rendering only, while canonical saved assistant text remains unchanged;
+- polished choice card is attached to the assistant reply that produced it;
+- only the latest visible assistant card is actionable;
+- historical cards remain readable but disabled;
+- selecting a path revalidates the producing message source/revision and latest-reply status before sending through the real composer;
+- unchosen paths are never inserted as story events.
 
-- `SnowBunny.state`
-- `SnowBunny.identity`
+An earlier prototype with unsafe self-observing DOM reconciliation was removed. The live module is event-driven instead.
 
-The namespace has an API version so later adapters can evolve deliberately.
+## Stories and stand-alone chats
 
-### Namespaced state adapters
+`stories-library.js` implements the first SnowBunny Stories workspace and is wired into the top Book action and left Library.
 
-`state.js` establishes:
+- visual and compact Story browsing modes;
+- Story search;
+- create/rename Story;
+- Story interior as a chat browser, not a settings dashboard;
+- add current chat to a Story;
+- remove a chat from a Story;
+- open a Story's chats;
+- stand-alone chat browser;
+- stand-alone discovery uses the real ST Character-chat and group-chat APIs rather than inventing duplicate chat files;
+- chat references use owner type + stable Character avatar/group id + real chat id;
+- current chat stores its `storyId` under SnowBunny chat metadata while the global Story index stores references for library browsing;
+- chat rename events reconcile indexed Story references.
 
-- global lightweight SnowBunny state under `extension_settings.snowbunny`;
-- current-chat lightweight SnowBunny state under `chat_metadata.snowbunny`;
+Current Story records are lightweight SnowBunny library metadata in global SnowBunny state. Story Lorebooks and Story Memories are not yet wired into these records.
+
+`create-menu.js` owns the left-drawer Create sheet with the settled six entries: Story, Chat, Lorebook, Lore Entry, Character, Persona.
+
+- Story creation is functional.
+- Chat creation is functional when a current Character/Members chat exists and explicitly asks for stand-alone ownership or a target Story.
+- Character and Persona currently bridge to their real managers.
+- Lorebook and Lore Entry remain visibly unavailable until the real SnowBunny Codex store is wired; they are not redirected to ST World Info.
+
+The old Stories prototype that used an unsafe broad DOM observer was removed.
+
+## Current-chat utilities
+
+- Reset Chat clears current history through ST's real clear-chat path while keeping the chat object.
+- Search in Chat searches canonical message text and jumps/highlights the selected result.
+- Chat Statistics shows message, word/character, alternate-reply, hidden-message, media and per-speaker counts.
+
+## SnowBunny state + identity plumbing
+
+`state.js` establishes lightweight namespaced state:
+
+- global: `extension_settings.snowbunny`;
+- current chat: `chat_metadata.snowbunny`;
 - schema versioning;
-- read/patch/delete helpers using SillyTavern's own save functions.
+- read/patch/delete helpers using ST's persistence functions.
 
-This is intended for lightweight configuration and pointers, not giant Lorebook/Memory payloads.
+`message-identity.js` gives real ST messages persisted SnowBunny identity metadata:
 
-### Stable message identity/source revision
+- stable opaque id;
+- revision;
+- current source fingerprint;
+- origin id when a duplicate in the same chat needs a new local identity.
 
-`message-identity.js` gives each real ST message a persisted `extra.snowbunny` identity:
+The source fingerprint follows canonical prose, role/speaker, selected swipe, hidden state and relevant media so derived systems can invalidate against real history changes.
 
-- stable opaque `id`;
-- `revision`;
-- current `source` fingerprint;
-- `originId` when a duplicate inside the same chat needs a new local identity.
+## View Context
 
-The fingerprint currently includes role, speaker name, canonical message prose, selected swipe, hidden state and media identity. Editing, changing the active swipe, hiding/showing or changing relevant content therefore changes the source revision while keeping the logical message ID stable.
+`context-view.js` provides a SnowBunny mobile View Context sheet.
 
-The reconciler listens to ST chat/message events and persists only when identity/source data actually changed.
+- actual model/API metadata when ST stored it;
+- SnowBunny message revision;
+- prepared sections for History, Lore/Codex, Memories, Current State, Phone, Guidance and fitting;
+- raw ST itemized prompt details remain available through a secondary action when present.
 
-This is the base needed for tracker validity, Memory evidence, CYOA expiry and historical View Context receipts.
+Full SnowBunny context-routing receipt production is still to be wired.
 
-### View Context shell
+## Development launcher
 
-`context-view.js` adds a SnowBunny mobile View Context bottom sheet without destroying or altering SillyTavern's native prompt button state.
+`SnowBunny.bat` is the simple Windows development/testing path inside the clone:
 
-- A hidden SnowBunny proxy action makes View Context available on assistant replies.
-- Shows actual model/API metadata already stored on the message when available.
-- Shows SnowBunny message revision.
-- Can render future SnowBunny receipt sections for History, Lorebook/Codex, Memories, Current State, Phone, Guidance and fitting decisions.
-- If ST has native itemized prompt details for the reply, `Raw prompt details` still opens ST's real prompt inspector.
-- The native `.mes_prompt` remains untouched so compatibility/state is not falsified.
-
-The custom routing receipt producer is not wired yet; the sheet is ready for it.
-
-### One-click development launcher
-
-`SnowBunny.bat` provides a simple Windows development/testing path inside the cloned repository:
-
-- updates only the `snowbunny-mobile` branch from origin;
+- updates only `snowbunny-mobile` from origin;
 - checks/installs production packages;
 - starts the server;
-- leaves errors visible instead of turning routine testing into a repeated PowerShell command sequence.
+- leaves errors visible.
 
-This is a development convenience, not the final Android packaging/install flow.
+It is a development convenience, not the final Android package/install flow.
 
 ## Visual validation completed
 
-The first narrow/mobile-width visual pass confirmed:
+The first narrow/mobile-width pass confirmed the original chat-shell layer actually loads and caught two concrete layout bugs that were fixed.
 
-- the SnowBunny extension loads on the fork;
-- message cards render without replacing ST's canonical message DOM;
-- tap-message menu opens in place;
-- Retry / Continue appear beneath the latest reply;
-- the live composer remains usable;
-- two concrete layout bugs were caught from the screenshots and fixed: stock message header controls leaking through, and the extra composer magic-wand control colliding with the writing field.
+The newer outer-shell, Members, Persona No Persona, Model, Scenario, CYOA and Stories work above is implemented/wired but has **not yet received another visual/device validation pass**. Do not describe those newer surfaces as tested until they are actually run.
 
-## Deliberately not claimed complete yet
+## Still not complete
 
-- Actual Stories library/interior behind the top Book action and left Library row.
-- Actual SnowBunny Lorebook library and top Codex workspace.
-- Current-chat Members multi-select.
-- `No Persona` semantics that truly suppress Persona context rather than merely unlocking ST's current Persona.
-- Current-chat multi-connection/profile switching in Model; model/provider switching within the current ST API machinery is live.
-- Full mobile Preset editor with modules/reorder/import/export/utility prompts; only quick selection is live now.
-- Lorebooks / Regex / Memory / Agents / CYOA right-drawer destinations.
-- Final extension quick-action tray in the composer.
-- Tracker / Story State panels in the ST DOM.
-- Memory Maker proposal popups.
-- Native CYOA rendering and expiry.
-- Rich graphics sandbox / display Regex integration.
-- Full SnowBunny View Context receipt production.
-- Safe historical Retry semantics.
-- Message multi-select behavior.
-- Final phone spacing/theme polish on a true Android viewport after the shell becomes more complete.
+- Narrator member adapter and dedicated Narrator editor.
+- SnowBunny Lorebook library and top Codex workspace.
+- Story Lorebook assignment and Story-wide Memory ownership UI/data integration.
+- Regex destination and native display/input integration.
+- Memory Maker engine/proposal UI in the fork.
+- Agents engine/UI port and Tracker/Story State panels.
+- safe selective multi-connection/profile switching in Model.
+- full mobile Preset editor + Utility prompts.
+- final extension quick-action tray in the composer.
+- full View Context routing receipts.
+- safe historical Retry semantics.
+- message multi-select behavior.
+- final Character/Persona global SnowBunny libraries/editors instead of temporary ST manager bridges.
+- full Create flow for a brand-new chat with no current Character/Members context.
+- Android packaging/launcher and true-device polish.
 
 ## Next implementation focus
 
-Continue replacing disabled shell destinations with their real SnowBunny systems. The next difficult seam is Members/current-chat cast because ordinary ST character chats are not the same thing as SnowBunny's explicit multi-member model. The Story/stand-alone chat library can follow once its durable ownership/storage mapping is implemented. Do not fake Codex/Lorebooks with ST World Info just to make the buttons clickable.
+The next large dependency is the real SnowBunny Lorebook/Codex data layer, because it unlocks the top Codex workspace, global Lorebook library, Story Lorebook assignment and current-chat Lorebook row without lying through ST World Info. In parallel, the special Narrator adapter can finish the Members model without contaminating ordinary Character storage.
