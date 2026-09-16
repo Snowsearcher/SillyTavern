@@ -16,8 +16,9 @@ const SECTION_LABELS = {
 
 let initialized = false;
 let busy = false;
-let queuedMessageId = null;
+let queuedMessageIds = [];
 let rebuildTimer = null;
+let rebuilding = false;
 let pendingWriterReceipt = null;
 
 function context() {
@@ -32,19 +33,65 @@ function cleanChoiceMarkup(value) {
     return String(value || '').replace(/<choicecard\b[^>]*>[\s\S]*?<\/choicecard>/gi, '').trim();
 }
 
-function visibleStory(limit) {
+function currentRef() {
+    const api = context();
+    const chatId = api?.getCurrentChatId?.();
+    if (!chatId) return null;
+    if (api.groupId) return { kind: 'group', owner: String(api.groupId), chatId: String(chatId) };
+    const index = Number.parseInt(String(api.characterId ?? ''), 10);
+    const character = Number.isInteger(index) ? api.characters?.[index] : null;
+    return character?.avatar ? { kind: 'character', owner: character.avatar, chatId: String(chatId) } : null;
+}
+
+function identityFor(message) {
+    return globalThis.SnowBunny?.identity?.current?.(message) || message?.extra?.snowbunny || {};
+}
+
+function visibleSlice(endIndex = null) {
     const api = context();
     if (!Array.isArray(api?.chat)) return [];
+    const end = Number.isInteger(endIndex) ? Math.min(api.chat.length - 1, endIndex) : api.chat.length - 1;
     const ignore = api?.symbols?.ignore;
     return api.chat
-        .filter(message => message && !message.is_system && !(ignore && message.extra?.[ignore]))
+        .slice(0, end + 1)
+        .filter(message => message && !message.is_system && !(ignore && message.extra?.[ignore]));
+}
+
+function visibleStory(limit, endIndex = null) {
+    const api = context();
+    return visibleSlice(endIndex)
         .slice(-Math.max(4, limit))
         .map(message => ({
-            speaker: message.name || (message.is_user ? api.name1 : api.name2) || (message.is_user ? 'User' : 'Assistant'),
+            speaker: message.name || (message.is_user ? api?.name1 : api?.name2) || (message.is_user ? 'User' : 'Assistant'),
             role: message.is_user ? 'user' : 'assistant',
             text: cleanChoiceMarkup(message.mes),
         }))
         .filter(row => row.text);
+}
+
+function sourceForMessage(message, messageIndex, historyCount) {
+    const identity = identityFor(message);
+    if (!identity.id) return null;
+    const evidence = visibleSlice(messageIndex)
+        .slice(-Math.max(1, historyCount))
+        .map(item => {
+            const itemIdentity = identityFor(item);
+            return {
+                id: String(itemIdentity.id || ''),
+                revision: Number(itemIdentity.revision) || 0,
+                source: String(itemIdentity.source || ''),
+            };
+        })
+        .filter(item => item.id);
+    return {
+        chatRef: currentRef(),
+        message: {
+            id: String(identity.id),
+            revision: Number(identity.revision) || 0,
+            source: String(identity.source || ''),
+        },
+        evidence,
+    };
 }
 
 function stripFence(text) {
@@ -197,32 +244,43 @@ function attachWriterReceipt(message) {
     if (typeof save === 'function') window.setTimeout(() => void save(), 50);
 }
 
-function latestAssistantIndex() {
+function assistantIndicesAfter(messageIdentityId = '') {
     const api = context();
-    if (!Array.isArray(api?.chat)) return -1;
+    if (!Array.isArray(api?.chat)) return [];
     const ignore = api?.symbols?.ignore;
-    for (let index = api.chat.length - 1; index >= 0; index--) {
+    let startIndex = -1;
+    if (messageIdentityId) {
+        startIndex = api.chat.findIndex(message => String(identityFor(message).id || '') === String(messageIdentityId));
+    }
+    const indices = [];
+    for (let index = Math.max(0, startIndex + 1); index < api.chat.length; index++) {
         const message = api.chat[index];
         if (!message || message.is_user || message.is_system || (ignore && message.extra?.[ignore])) continue;
-        return index;
+        const hasUserBefore = api.chat.slice(0, index).some(item => item?.is_user && !item?.is_system);
+        if (!hasUserBefore) continue;
+        indices.push(index);
     }
-    return -1;
+    return indices;
+}
+
+function latestAssistantIndex() {
+    return assistantIndicesAfter('').at(-1) ?? -1;
 }
 
 async function updateTrackerForMessage(messageId, { force = false } = {}) {
     const api = context();
     const trackerApi = trackers();
-    if (!trackerApi || !Array.isArray(api?.chat)) return;
+    if (!trackerApi || !Array.isArray(api?.chat)) return null;
     const state = await trackerApi.read();
-    if (!force && state.settings?.automatic === false) return;
+    if (!force && state.settings?.automatic === false) return null;
     const message = api.chat[messageId];
-    if (!message || message.is_user || message.is_system) return;
-    const source = trackerApi.sourceForMessage(message, state.settings?.historyCount || 14);
-    if (!source) return;
+    if (!message || message.is_user || message.is_system) return null;
+    const source = sourceForMessage(message, messageId, state.settings?.historyCount || 14);
+    if (!source) return null;
 
     const previous = trackerApi.currentFromState(state);
-    const rows = visibleStory(state.settings?.historyCount || 14);
-    if (!rows.length) return;
+    const rows = visibleStory(state.settings?.historyCount || 14, messageId);
+    if (!rows.length) return null;
     const prompt = `Previous Story State:\n${JSON.stringify(previousForPrompt(previous, state.settings))}\n\nVisible story evidence, oldest to newest:\n${rows.map(row => `${row.speaker}: ${row.text}`).join('\n\n')}\n\nUpdate the Story State to the exact situation after the final line.`;
 
     const result = await api.generateRaw({
@@ -234,22 +292,22 @@ async function updateTrackerForMessage(messageId, { force = false } = {}) {
     const parsed = parseTrackerResult(result, state.settings);
 
     const stillCurrentChat = trackerApi.snapshotStillValid({ source, stale: false });
-    if (!stillCurrentChat) return;
+    if (!stillCurrentChat) return null;
     const snapshot = await trackerApi.append({
         source,
         timePlace: parsed.timePlace,
         sections: parsed.sections,
     });
     document.dispatchEvent(new CustomEvent('snowbunny:tracker-snapshot-ready', { detail: { snapshotId: snapshot.id, messageId: source.message.id } }));
+    return snapshot;
 }
 
 async function drainQueue() {
-    if (busy) return;
+    if (busy || rebuilding) return;
     busy = true;
     try {
-        while (queuedMessageId !== null) {
-            const next = queuedMessageId;
-            queuedMessageId = null;
+        while (queuedMessageIds.length) {
+            const next = queuedMessageIds.shift();
             try {
                 await updateTrackerForMessage(next);
             } catch (error) {
@@ -263,9 +321,36 @@ async function drainQueue() {
 }
 
 function queueUpdate(messageId) {
-    if (!Number.isInteger(Number(messageId))) return;
-    queuedMessageId = Number(messageId);
+    const id = Number(messageId);
+    if (!Number.isInteger(id) || queuedMessageIds.includes(id)) return;
+    queuedMessageIds.push(id);
     void drainQueue();
+}
+
+async function rebuildInvalidChain(reconciliation) {
+    if (rebuilding) return;
+    const trackerApi = trackers();
+    const state = reconciliation?.state;
+    if (!trackerApi || !state || state.settings?.automatic === false) return;
+    rebuilding = true;
+    try {
+        const valid = trackerApi.currentFromState(state);
+        const startMessageId = valid?.source?.message?.id || '';
+        const replay = assistantIndicesAfter(startMessageId);
+        for (const index of replay) {
+            try {
+                await updateTrackerForMessage(index, { force: true });
+            } catch (error) {
+                console.warn(`[SnowBunny] Story Tracker replay stopped at message ${index}.`, error);
+                document.dispatchEvent(new CustomEvent('snowbunny:tracker-error', { detail: { message: String(error?.message || error) } }));
+                break;
+            }
+        }
+    } finally {
+        rebuilding = false;
+        void drainQueue();
+        void routeCurrentState();
+    }
 }
 
 function scheduleRebuild() {
@@ -274,11 +359,7 @@ function scheduleRebuild() {
         try {
             const result = await trackers()?.reconcile?.({ persist: true });
             if (!result?.currentInvalidated) return;
-            const index = latestAssistantIndex();
-            if (index >= 0) {
-                queuedMessageId = index;
-                await drainQueue();
-            }
+            await rebuildInvalidChain(result);
         } catch (error) {
             console.warn('[SnowBunny] Could not reconcile Story State after a history change.', error);
         }
@@ -307,7 +388,7 @@ function registerEvents() {
         });
     }
 
-    for (const name of ['MESSAGE_EDITED', 'MESSAGE_SWIPED', 'MESSAGE_SWIPE_DELETED', 'MESSAGE_DELETED']) {
+    for (const name of ['MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_SWIPED', 'MESSAGE_SWIPE_DELETED', 'MESSAGE_DELETED']) {
         const event = types[name];
         if (event) source.on(event, scheduleRebuild);
     }
@@ -315,6 +396,7 @@ function registerEvents() {
     for (const name of ['CHAT_CHANGED', 'CHAT_LOADED']) {
         const event = types[name];
         if (event) source.on(event, () => {
+            queuedMessageIds = [];
             pendingWriterReceipt = null;
             void routeCurrentState();
         });
