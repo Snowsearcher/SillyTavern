@@ -143,11 +143,27 @@ function serializeCurrentState(snapshot) {
     return `<current-state revision="${Number(snapshot.revision) || 1}"${snapshot.manuallyEdited ? ' edited="true"' : ''}>\n${blocks.join('\n\n')}\n</current-state>`;
 }
 
+function clearCurrentStatePrompt(api) {
+    api.setExtensionPrompt(
+        PROMPT_KEY,
+        '',
+        extension_prompt_types.IN_CHAT,
+        0,
+        false,
+        extension_prompt_roles.SYSTEM,
+    );
+    pendingWriterReceipt = null;
+}
+
 async function routeCurrentState() {
     const api = context();
     const trackerApi = trackers();
     if (!api?.setExtensionPrompt || !trackerApi) return null;
     const reconciliation = await trackerApi.reconcile({ persist: true });
+    if (reconciliation.state.settings?.automatic === false) {
+        clearCurrentStatePrompt(api);
+        return null;
+    }
     const snapshot = trackerApi.currentFromState(reconciliation.state);
     const valid = snapshot && trackerApi.snapshotStillValid(snapshot) ? snapshot : null;
     const prompt = serializeCurrentState(valid);
