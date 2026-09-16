@@ -45,6 +45,8 @@ import { initPhoneArtworkLibrary } from './phone-artwork-library.js';
 import { initPhoneArtworkManagerUi } from './phone-artwork-manager-ui.js';
 import { initPhoneConversation } from './phone-conversation.js';
 import { initPhoneEvidence } from './phone-evidence.js';
+import { initPhoneHistoryStatus } from './phone-history-status.js';
+import { initPhoneHistoryStatusUi } from './phone-history-status-ui.js';
 import { initPhoneRouting } from './phone-routing.js';
 import { initPhoneSocialActions } from './phone-social-actions.js';
 import { initPhoneSocialArtworkUi } from './phone-social-artwork-ui.js';
@@ -120,6 +122,7 @@ export function init() {
     initMessageIdentity();
     initTrackerStore();
     initPhoneStore();
+    initPhoneHistoryStatus();
     initPhoneArtwork();
     initPhoneArtworkLibrary();
     initPhoneSocialNetwork();
@@ -131,6 +134,7 @@ export function init() {
     initPhoneUpkeep();
     initPhoneUi();
     initPhoneArtworkManagerUi();
+    initPhoneHistoryStatusUi();
     initPhoneSocialUi();
     initPhoneSocialProfileUi();
     initPhoneSocialArtworkUi();
