@@ -10,6 +10,7 @@ import { init as initMobileShell } from './index.js';
 import { initLorebookStore } from './lorebook-store.js';
 import { initLoreRetrieval } from './lore-retrieval.js';
 import { initLoreSemanticIndex } from './lore-semantic-index.js';
+import { initMemoryIntegrity } from './memory-integrity.js';
 import { initMemoryMaker } from './memory-maker.js';
 import { initMemoryRecall } from './memory-recall.js';
 import { initMemoryStore } from './memory-store.js';
@@ -78,6 +79,7 @@ export function init() {
     initMessageIdentity();
     initTrackerStore();
     initMemoryStore();
+    initMemoryIntegrity();
     initStoryTracker();
     initMemoryMaker();
     initMemoryRecall();
