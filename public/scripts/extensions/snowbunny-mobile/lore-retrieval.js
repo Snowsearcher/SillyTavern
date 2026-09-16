@@ -7,6 +7,7 @@ let initialized = false;
 let loadedBooks = new Map();
 let preloadPromise = null;
 let lastRoutingReceipt = null;
+let receiptSaveTimer = null;
 
 function context() {
     return globalThis.SillyTavern?.getContext?.() ?? null;
@@ -14,6 +15,10 @@ function context() {
 
 function lorebooks() {
     return globalThis.SnowBunny?.lorebooks ?? null;
+}
+
+function semantic() {
+    return globalThis.SnowBunny?.loreSemantic ?? null;
 }
 
 function escapeRegExp(value) {
@@ -38,9 +43,14 @@ function visibleRecentMessages(limit = DEFAULT_RECENT_MESSAGES) {
         .map(message => `${message.name || (message.is_user ? api.name1 : api.name2) || ''}: ${message.mes || ''}`);
 }
 
-function queryText(book) {
+function queryText(book, { includeDraft = false } = {}) {
     const depth = Math.max(1, Number(book?.retrieval?.scanDepth) || DEFAULT_RECENT_MESSAGES);
-    return normalizeText(visibleRecentMessages(depth).join('\n'));
+    const parts = visibleRecentMessages(depth);
+    if (includeDraft) {
+        const draft = String(document.getElementById('send_textarea')?.value || '').trim();
+        if (draft) parts.push(`${context()?.name1 || 'User'}: ${draft}`);
+    }
+    return normalizeText(parts.join('\n'));
 }
 
 function wordMatch(query, needle) {
@@ -54,35 +64,17 @@ function wordMatch(query, needle) {
     }
 }
 
-function exactSignals(entry) {
-    return [entry.name, ...(entry.aliases || [])].map(normalizeText).filter(Boolean);
-}
-
 function keywordScore(entry, query) {
     let score = 0;
-    for (const signal of exactSignals(entry)) {
-        if (wordMatch(query, signal)) score += signal === normalizeText(entry.name) ? 12 : 8;
+    const name = normalizeText(entry.name);
+    const signals = [entry.name, ...(entry.aliases || [])].map(normalizeText).filter(Boolean);
+    for (const signal of signals) {
+        if (wordMatch(query, signal)) score += signal === name ? 12 : 8;
     }
     for (const tag of entry.tags || []) {
         if (wordMatch(query, tag)) score += 2;
     }
     return score;
-}
-
-function meaningFallbackScore(entry, query) {
-    // Exact name/alias rescue remains active even before the dedicated semantic
-    // embedding index is ported. Do not pretend this is vector similarity.
-    const exact = keywordScore(entry, query);
-    if (exact > 0) return exact;
-
-    const prose = normalizeText(`${entry.description || ''} ${(entry.sections || []).map(section => section.text || '').join(' ')}`);
-    if (!prose || !query) return 0;
-    const queryWords = new Set(query.split(/[^\p{L}\p{N}_]+/u).filter(word => word.length >= 4));
-    if (!queryWords.size) return 0;
-    const proseWords = new Set(prose.split(/[^\p{L}\p{N}_]+/u).filter(word => word.length >= 4));
-    let overlap = 0;
-    for (const word of queryWords) if (proseWords.has(word)) overlap++;
-    return overlap / Math.sqrt(Math.max(1, queryWords.size));
 }
 
 function entryBody(entry) {
@@ -114,68 +106,133 @@ function serializeEntry(entry, book) {
     return `<${tag} name="${escapeAttr(entry.name)}" lorebook="${escapeAttr(book.name)}"${aliases}>\n${body}\n</${tag}>`;
 }
 
-function pickEntries(book) {
-    const query = queryText(book);
-    const candidates = [];
-    for (const entry of book.entries || []) {
-        if (entry.enabled === false) continue;
-        if (entry.alwaysActive) {
-            candidates.push({ entry, score: Number.POSITIVE_INFINITY, reason: 'always active' });
-            continue;
-        }
-        const mode = book.retrieval?.mode === 'meaning' ? 'meaning' : 'keywords';
-        const score = mode === 'meaning' ? meaningFallbackScore(entry, query) : keywordScore(entry, query);
-        const threshold = mode === 'meaning' ? 0.35 : 0;
-        if (score > threshold) {
-            candidates.push({
-                entry,
-                score,
-                reason: mode === 'meaning' ? (score >= 8 ? 'exact identity rescue' : 'semantic fallback overlap') : 'keyword / alias match',
-            });
-        }
-    }
-
-    candidates.sort((a, b) => {
-        if (a.score === b.score) return (a.entry.order || 0) - (b.entry.order || 0);
-        return b.score - a.score;
-    });
-    const limit = Math.max(1, Number(book.retrieval?.maxMatches) || 3);
-    const always = candidates.filter(item => !Number.isFinite(item.score));
-    const matched = candidates.filter(item => Number.isFinite(item.score)).slice(0, limit);
-    return [...always, ...matched];
+function alwaysActive(book) {
+    return (book.entries || [])
+        .filter(entry => entry.enabled !== false && entry.alwaysActive)
+        .sort((a, b) => (a.order || 0) - (b.order || 0))
+        .map(entry => ({ entry, reason: 'always active', semanticRank: null, exactRank: null }));
 }
 
-function routeFromCache() {
+function keywordMatches(book, query) {
+    const matches = [];
+    for (const entry of book.entries || []) {
+        if (entry.enabled === false || entry.alwaysActive) continue;
+        const score = keywordScore(entry, query);
+        if (score > 0) matches.push({ entry, score, reason: 'keyword / alias match', semanticRank: null, exactRank: null });
+    }
+    matches.sort((a, b) => b.score - a.score || (a.entry.order || 0) - (b.entry.order || 0));
+    const limit = Math.max(1, Number(book.retrieval?.maxMatches) || 3);
+    return matches.slice(0, limit);
+}
+
+function exactRescueFallback(book, query) {
+    const matches = keywordMatches(book, query);
+    return matches.map(match => ({
+        ...match,
+        reason: 'exact identity rescue · semantic index unavailable',
+        vectorFallback: true,
+    }));
+}
+
+async function meaningMatches(book, query) {
+    const semanticApi = semantic();
+    if (!semanticApi?.queryBook) {
+        return {
+            matches: exactRescueFallback(book, query),
+            vectorReady: false,
+            error: 'Semantic index adapter is unavailable.',
+            source: '',
+            model: '',
+        };
+    }
+    const result = await semanticApi.queryBook(book, query);
+    if (!result.vectorReady) {
+        return {
+            ...result,
+            matches: exactRescueFallback(book, query),
+        };
+    }
+    return result;
+}
+
+async function selectForBook(book, options) {
+    const query = queryText(book, options);
+    const always = alwaysActive(book);
+    if (book.retrieval?.mode !== 'meaning') {
+        return {
+            matches: [...always, ...keywordMatches(book, query)],
+            vectorReady: null,
+            vectorError: '',
+            source: '',
+            model: '',
+        };
+    }
+    const result = await meaningMatches(book, query);
+    return {
+        matches: [...always, ...(result.matches || [])],
+        vectorReady: result.vectorReady === true,
+        vectorError: result.error || '',
+        source: result.source || '',
+        model: result.model || '',
+    };
+}
+
+function fitBookMatches(book, matches) {
+    const budget = Math.max(500, Number(book.retrieval?.loreBudgetChars) || 12000);
+    const selected = [];
+    let used = 0;
+    for (const match of matches) {
+        const serialized = serializeEntry(match.entry, book);
+        if (used + serialized.length > budget && used > 0) continue;
+        selected.push({ ...match, serialized });
+        used += serialized.length;
+    }
+    return { selected, used, budget };
+}
+
+async function routeLore({ includeDraft = false } = {}) {
+    await preloadEffectiveBooks({ routeAfterLoad: false });
     const api = context();
     const ids = lorebooks()?.effectiveIds?.() ?? [];
-    const selected = [];
-    const receipt = [];
-    let budget = 0;
+    const promptEntries = [];
+    const receiptEntries = [];
+    const vectorBooks = [];
+    let totalCharacters = 0;
+
     for (const id of ids) {
         const book = loadedBooks.get(id);
         if (!book) continue;
-        const perBookBudget = Math.max(500, Number(book.retrieval?.loreBudgetChars) || 12000);
-        let used = 0;
-        for (const match of pickEntries(book)) {
-            const serialized = serializeEntry(match.entry, book);
-            if (used + serialized.length > perBookBudget && used > 0) continue;
-            selected.push(serialized);
-            used += serialized.length;
-            budget += serialized.length;
-            receipt.push({
+        const selection = await selectForBook(book, { includeDraft });
+        const fitted = fitBookMatches(book, selection.matches);
+        totalCharacters += fitted.used;
+        promptEntries.push(...fitted.selected.map(item => item.serialized));
+        for (const item of fitted.selected) {
+            receiptEntries.push({
                 lorebook: book.name,
                 lorebookId: book.id,
-                entry: match.entry.name,
-                entryId: match.entry.id,
-                type: match.entry.type,
-                reason: match.reason,
+                entry: item.entry.name,
+                entryId: item.entry.id,
+                type: item.entry.type,
+                reason: item.reason,
                 mode: book.retrieval?.mode || 'keywords',
+                semanticRank: item.semanticRank ?? null,
+                exactRank: item.exactRank ?? null,
+            });
+        }
+        if (book.retrieval?.mode === 'meaning') {
+            vectorBooks.push({
+                lorebook: book.name,
+                lorebookId: book.id,
+                ready: selection.vectorReady === true,
+                source: selection.source || '',
+                model: selection.model || '',
+                error: selection.vectorError || '',
             });
         }
     }
 
-    const prompt = selected.length
-        ? `<snowbunny_lore>\n${selected.join('\n\n')}\n</snowbunny_lore>`
+    const prompt = promptEntries.length
+        ? `<snowbunny_lore>\n${promptEntries.join('\n\n')}\n</snowbunny_lore>`
         : '';
     api?.setExtensionPrompt?.(
         PROMPT_KEY,
@@ -186,14 +243,16 @@ function routeFromCache() {
         extension_prompt_roles.SYSTEM,
     );
     lastRoutingReceipt = {
-        entries: receipt,
-        characters: budget,
+        entries: receiptEntries,
+        characters: totalCharacters,
         effectiveLorebooks: ids,
-        semanticVectorIndexReady: false,
+        semantic: vectorBooks,
+        semanticVectorIndexReady: vectorBooks.length ? vectorBooks.every(item => item.ready) : null,
     };
+    return lastRoutingReceipt;
 }
 
-async function preloadEffectiveBooks() {
+async function preloadEffectiveBooks({ routeAfterLoad = true } = {}) {
     if (preloadPromise) return preloadPromise;
     preloadPromise = (async () => {
         const ids = lorebooks()?.effectiveIds?.() ?? [];
@@ -208,7 +267,7 @@ async function preloadEffectiveBooks() {
             if (book) next.set(id, book);
         }
         loadedBooks = next;
-        routeFromCache();
+        if (routeAfterLoad) await routeLore({ includeDraft: false });
     })().finally(() => {
         preloadPromise = null;
     });
@@ -221,13 +280,20 @@ function invalidateBook(bookId = '') {
     void preloadEffectiveBooks();
 }
 
+function queueReceiptSave() {
+    clearTimeout(receiptSaveTimer);
+    receiptSaveTimer = setTimeout(() => {
+        void context()?.saveChat?.().catch?.(error => console.warn('[SnowBunny] Could not persist View Context Lore receipt.', error));
+    }, 120);
+}
+
 function attachReceiptToMessage(message) {
     if (!message || message.is_user || message.is_system || !lastRoutingReceipt) return;
     message.extra ||= {};
     message.extra.snowbunny ||= {};
     message.extra.snowbunny.contextReceipt ||= {};
     message.extra.snowbunny.contextReceipt.lore = structuredClone(lastRoutingReceipt);
-    context()?.saveChatDebounced?.();
+    queueReceiptSave();
 }
 
 function registerEvents() {
@@ -238,19 +304,28 @@ function registerEvents() {
 
     for (const name of ['CHAT_CHANGED', 'CHAT_LOADED']) {
         const event = types[name];
-        if (event) source.on(event, () => {
+        if (event) source.on(event, async () => {
             loadedBooks.clear();
-            void preloadEffectiveBooks();
+            await preloadEffectiveBooks();
         });
     }
 
-    for (const name of ['MESSAGE_SENT', 'MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_SWIPED', 'MESSAGE_SWIPE_DELETED', 'GENERATION_STARTED']) {
+    // This event is awaited by SillyTavern before it consumes/clears the text
+    // area or assembles the prompt. Semantic Meaning queries therefore finish
+    // in time to influence the actual generation, including the newest draft.
+    if (types.GENERATION_AFTER_COMMANDS) {
+        source.on(types.GENERATION_AFTER_COMMANDS, async (_type, _options, dryRun) => {
+            await routeLore({ includeDraft: !dryRun });
+        });
+    }
+
+    for (const name of ['MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_SWIPED', 'MESSAGE_SWIPE_DELETED']) {
         const event = types[name];
-        if (event) source.on(event, routeFromCache);
+        if (event) source.on(event, () => void routeLore({ includeDraft: false }));
     }
 
     if (types.MESSAGE_RECEIVED) {
-        source.on(types.MESSAGE_RECEIVED, messageId => {
+        source.on(types.MESSAGE_RECEIVED, async messageId => {
             const index = Number(messageId);
             const message = Number.isInteger(index) ? api.chat?.[index] : api.chat?.at?.(-1);
             attachReceiptToMessage(message);
