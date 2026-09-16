@@ -24,6 +24,24 @@ Preserve:
 - Each field has an expand/fullscreen action for comfortable long-form editing on mobile.
 - Scenario is intended to hold natural prose. It should not become a dense form full of tiny controls.
 
+## Frontend integration rule
+
+The screenshots are a **baseline, not a frozen skin**.
+
+The fork must refine Scenario so it matches the final SnowBunny frontend language used everywhere else:
+
+- same panel materials, translucency, borders, radii and shadows as the final chat/drawer/workspace surfaces;
+- same typography scale and spacing system;
+- same icon family and button treatment;
+- same accent/theme behavior, including user-selected appearance settings;
+- same animation quality for panel entry, field expansion, fullscreen editing and helper review;
+- same touch-target sizing and mobile ergonomics as the rest of the app;
+- same visual polish as Characters, Codex, Agents, Memory Maker and other first-class SnowBunny systems.
+
+Do not preserve awkward old styling merely because it appears in the screenshot. Preserve the **layout intent and interaction strengths**, then bring the screen up to the final frontend quality bar.
+
+Scenario should feel like it was designed as part of the new SnowBunny app, not like an old Flutter page embedded inside a newer shell.
+
 ## Canonical Scenario fields
 
 Keep the four-field design already present in SnowBunny:
@@ -87,7 +105,8 @@ Possible polish:
 - better fullscreen editor for long fields;
 - cleaner resize handle while preserving obvious discoverability;
 - autosave/draft protection can be considered, but explicit Save and unsaved-change protection should remain clear;
-- helper result review should feel native and conversational, not like a raw AI response page.
+- helper result review should feel native and conversational, not like a raw AI response page;
+- make the final screen visually coherent with the rest of the SnowBunny frontend rather than preserving old component styling one-for-one.
 
 ## Guardrails
 
@@ -101,6 +120,8 @@ Future implementation must not:
 - expose internal prompt plumbing to the user;
 - silently rewrite user-authored Scenario text;
 - treat `For the writer to know` as character knowledge;
-- add unrelated current-state tracking here. Current trackers and Memories have separate jobs.
+- add unrelated current-state tracking here. Current trackers and Memories have separate jobs;
+- clone the old Scenario visuals literally if they clash with the refined frontend;
+- leave Scenario looking like a legacy screen while the rest of SnowBunny uses the newer visual system.
 
-The supplied screenshots are the visual baseline. The fork should preserve their focused, readable, polished feel while correcting the obsolete Story-wide ownership model.
+The supplied screenshots are the interaction/layout baseline. The fork should preserve their focused, readable, polished intent, correct the obsolete Story-wide ownership model, and refine the visuals so Scenario feels fully native to the final SnowBunny frontend.
