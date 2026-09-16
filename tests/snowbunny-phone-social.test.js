@@ -26,6 +26,8 @@ beforeAll(async () => {
 
     const { initPhoneStore } = await import('../public/scripts/extensions/snowbunny-mobile/phone-store.js');
     initPhoneStore();
+    const { initPhoneArtwork } = await import('../public/scripts/extensions/snowbunny-mobile/phone-artwork.js');
+    initPhoneArtwork();
     const { initPhoneSocialNetwork } = await import('../public/scripts/extensions/snowbunny-mobile/phone-social-network.js');
     initPhoneSocialNetwork();
     const { initPhoneSocialActions } = await import('../public/scripts/extensions/snowbunny-mobile/phone-social-actions.js');
@@ -158,6 +160,49 @@ describe('public player identity boundary', () => {
         expect(state.profiles[0].id).toBe('you');
         expect(globalThis.SnowBunny.phone.actorKey(state.profiles[0].actor)).toBe('custom:player-public');
         expect(state.contacts).toEqual([]);
+    });
+});
+
+describe('Phone artwork ownership', () => {
+    test('preserves explicit public and private presentation pictures in Phone state', () => {
+        const state = globalThis.SnowBunny.phone.normalize({
+            profiles: [{ id: 'merchant', name: 'Merchant', picture: '/user/files/merchant.webp' }],
+            contacts: [{ id: 'friend', name: 'Friend', presentation: { picture: '/user/files/friend.png' } }],
+        });
+        expect(state.profiles[0].picture).toBe('/user/files/merchant.webp');
+        expect(state.contacts[0].presentation.picture).toBe('/user/files/friend.png');
+        expect(globalThis.SnowBunny.phoneArtwork.contactPicture(state.contacts[0])).toBe('/user/files/friend.png');
+    });
+
+    test('uses Story-owned public artwork when a branch profile has no local override', () => {
+        globalState = {
+            stories: [{
+                id: 'story-1',
+                phoneArtwork: {
+                    publicProfilePictures: {
+                        merchant: '/user/files/story-merchant.webp',
+                    },
+                },
+            }],
+        };
+        chatState = { storyId: 'story-1' };
+        expect(globalThis.SnowBunny.phoneArtwork.profilePicture({ id: 'merchant', name: 'Merchant' }))
+            .toBe('/user/files/story-merchant.webp');
+    });
+
+    test('keeps a local explicit profile picture ahead of the Story fallback', () => {
+        globalState = {
+            stories: [{
+                id: 'story-1',
+                phoneArtwork: { publicProfilePictures: { merchant: '/user/files/story.webp' } },
+            }],
+        };
+        chatState = { storyId: 'story-1' };
+        expect(globalThis.SnowBunny.phoneArtwork.profilePicture({
+            id: 'merchant',
+            name: 'Merchant',
+            picture: '/user/files/local.webp',
+        })).toBe('/user/files/local.webp');
     });
 });
 
