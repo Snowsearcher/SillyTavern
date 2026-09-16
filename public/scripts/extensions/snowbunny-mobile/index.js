@@ -271,16 +271,16 @@ function actionButton({ action, label, icon, disabled = false, run }) {
 }
 
 function buildMessageMenu(message) {
+    const api = context();
     const data = chatMessage(message);
     const latestAssistant = latestAssistantMessage() === message;
-    const hidden = Boolean(
-        visibleNativeButton(message, ['.mes_unhide'])
-        || message.querySelector('.mes_ghost:not(.displayNone)'),
-    );
+    const ignoreKey = api?.symbols?.ignore;
+    const hidden = Boolean(ignoreKey && data?.extra?.[ignoreKey]);
+    const prompt = nativeButton(message, ['.mes_prompt']);
     const canViewContext = Boolean(
-        nativeButton(message, ['.mes_prompt'])
-        && !nativeButton(message, ['.mes_prompt'])?.classList.contains('displayNone')
-        && nativeButton(message, ['.mes_prompt'])?.style.display !== 'none',
+        prompt
+        && !prompt.classList.contains('displayNone')
+        && prompt.style.display !== 'none',
     );
     const hasReplies = Array.isArray(data?.swipes) && data.swipes.length > 1;
 
@@ -432,22 +432,20 @@ function enhanceComposer() {
     }
 }
 
-function syncTailActions() {
-    document.querySelectorAll(`.${TAIL_ACTIONS_CLASS}`).forEach(node => node.remove());
-    if (!isMobileMode()) return;
-
-    const message = latestAssistantMessage();
-    if (!message) return;
+function createTailActions(message) {
+    const id = messageId(message);
+    if (id === null) return null;
 
     const actions = document.createElement('div');
     actions.className = TAIL_ACTIONS_CLASS;
+    actions.dataset.messageId = String(id);
     actions.setAttribute('aria-label', 'Latest reply actions');
 
     const make = (label, icon, handler) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'snowbunny-tail-action';
-        button.disabled = generationBusy();
+        button.dataset.action = label.toLowerCase();
         button.innerHTML = `<i class="${icon}" aria-hidden="true"></i><span>${label}</span>`;
         button.addEventListener('click', handler);
         return button;
@@ -457,7 +455,32 @@ function syncTailActions() {
         make('Retry', 'fa-solid fa-rotate-right', () => void retryLatest()),
         make('Continue', 'fa-solid fa-arrow-right', () => void continueLatest()),
     );
-    message.insertAdjacentElement('afterend', actions);
+    return actions;
+}
+
+function syncTailActions() {
+    const existing = document.querySelector(`.${TAIL_ACTIONS_CLASS}`);
+    const message = isMobileMode() ? latestAssistantMessage() : null;
+    const id = messageId(message);
+
+    if (!message || id === null) {
+        existing?.remove();
+        return;
+    }
+
+    let actions = existing;
+    if (!actions || actions.dataset.messageId !== String(id) || actions.previousElementSibling !== message) {
+        actions?.remove();
+        actions = createTailActions(message);
+        if (!actions) return;
+        message.insertAdjacentElement('afterend', actions);
+    }
+
+    const busy = generationBusy();
+    for (const button of actions.querySelectorAll('.snowbunny-tail-action')) {
+        if (button.disabled !== busy) button.disabled = busy;
+        button.setAttribute('aria-disabled', String(busy));
+    }
 }
 
 function syncMessagePresentation() {
