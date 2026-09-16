@@ -21,6 +21,10 @@ function memories() {
     return globalThis.SnowBunny?.memories ?? null;
 }
 
+function memoryIntegrity() {
+    return globalThis.SnowBunny?.memoryIntegrity ?? null;
+}
+
 function cleanChoiceMarkup(value) {
     return String(value || '').replace(/<choicecard\b[^>]*>[\s\S]*?<\/choicecard>/gi, '').trim();
 }
@@ -46,8 +50,9 @@ function wordSet(value) {
     return new Set(String(value || '').toLocaleLowerCase().split(/[^\p{L}\p{N}_]+/u).filter(word => word.length >= 3));
 }
 
-function memoryHints(memoryState, storyRows, limit = 12) {
-    const pool = Array.isArray(memoryState?.memories) ? memoryState.memories : [];
+function memoryHints(memoryState, storyRows, invalidIds = new Set(), limit = 12) {
+    const pool = (Array.isArray(memoryState?.memories) ? memoryState.memories : [])
+        .filter(memory => !invalidIds.has(String(memory.id)));
     if (!pool.length) return [];
     const query = wordSet(storyRows.map(row => row.text).join(' '));
     return pool
@@ -100,6 +105,9 @@ function dependencyText(definition, currentByAgent, byDefinition) {
     for (const dependencyId of definition.dependencies || []) {
         const result = currentByAgent.get(dependencyId);
         const dep = byDefinition.get(dependencyId);
+        if (!dep?.enabled) {
+            throw new Error(`${definition.name} depends on ${dep?.name || 'an Agent'} that is currently off.`);
+        }
         if (!result || !agents()?.resultStillValid?.(result)) {
             throw new Error(`${definition.name} needs a current result from ${dep?.name || 'one of its dependencies'}.`);
         }
@@ -122,7 +130,7 @@ Keep private knowledge private. Characters know only what the fiction establishe
 Agent task:\n${definition.prompt}`;
 }
 
-async function runOne(definition, targetIndex, state, currentByAgent, byDefinition, { force = false } = {}) {
+async function runOne(definition, targetIndex, currentByAgent, byDefinition, { force = false } = {}) {
     if (!definition.enabled) return null;
     const previous = currentByAgent.get(definition.id) || null;
     if (!dueForDefinition(definition, previous, targetIndex, force)) return null;
@@ -138,10 +146,12 @@ async function runOne(definition, targetIndex, state, currentByAgent, byDefiniti
     let memoryBlock = '';
     if (definition.includeAcceptedMemories) {
         try {
+            await memoryIntegrity()?.reconcile?.();
             const memoryState = await memories()?.read?.();
-            const selected = memoryHints(memoryState, rows);
+            const invalidIds = memoryIntegrity()?.invalidIds?.() ?? new Set();
+            const selected = memoryHints(memoryState, rows, invalidIds);
             if (selected.length) {
-                memoryBlock = `\n\nAccepted long-term Memories supplied only because this Agent explicitly requested them:\n${selected.map(memory => `${memory.title}: ${memory.details}`).join('\n\n')}`;
+                memoryBlock = `\n\nAccepted long-term Memories supplied only because this Agent explicitly requested them. Source-changed Memories are excluded:\n${selected.map(memory => `${memory.title}: ${memory.details}`).join('\n\n')}`;
             }
         } catch (error) {
             console.warn(`[SnowBunny] ${definition.name} could not read accepted Memories.`, error);
@@ -160,8 +170,12 @@ async function runOne(definition, targetIndex, state, currentByAgent, byDefiniti
         });
         if (!sourceStillValid(source)) throw new Error('Story evidence changed while this Agent was running.');
         const currentState = await agents().read({ fresh: true });
-        if (!currentState.definitions.some(item => item.id === definition.id && item.enabled)) {
+        const liveDefinition = currentState.definitions.find(item => item.id === definition.id);
+        if (!liveDefinition?.enabled) {
             throw new Error('This Agent was changed or disabled while it was running.');
+        }
+        if (JSON.stringify(liveDefinition.dependencies || []) !== JSON.stringify(definition.dependencies || [])) {
+            throw new Error('This Agent’s dependencies changed while it was running. Run it again with the new setup.');
         }
         const text = String(resultText || '').trim();
         if (!text) throw new Error('The Agent returned an empty result. Its previous result was kept.');
@@ -192,6 +206,7 @@ async function runForMessage(targetIndex, { automatic = true, onlyAgentId = '', 
     const byDefinition = new Map(ordered.map(definition => [definition.id, definition]));
     const currentByAgent = store.currentResultsFromState(state);
     const requested = new Set();
+    const failedThisCycle = new Set();
 
     const addDependency = agentId => {
         if (requested.has(agentId)) return;
@@ -207,14 +222,22 @@ async function runForMessage(targetIndex, { automatic = true, onlyAgentId = '', 
         if (!definition.enabled) continue;
         if (onlyAgentId && !requested.has(definition.id)) continue;
         if (!onlyAgentId && automatic && !definition.automatic) continue;
+
+        const failedDependencies = (definition.dependencies || []).filter(dependencyId => failedThisCycle.has(dependencyId));
+        if (failedDependencies.length) {
+            const names = failedDependencies.map(dependencyId => byDefinition.get(dependencyId)?.name || 'dependency').join(', ');
+            const detail = `Waiting because ${names} failed to update for this story reply.`;
+            await store.setStatus(definition.id, 'waiting', detail);
+            failedThisCycle.add(definition.id);
+            continue;
+        }
+
         try {
-            const result = await runOne(definition, targetIndex, state, currentByAgent, byDefinition, { force: force || Boolean(onlyAgentId) });
+            const result = await runOne(definition, targetIndex, currentByAgent, byDefinition, { force: force || Boolean(onlyAgentId) });
             if (result) produced.push(result);
         } catch (error) {
+            failedThisCycle.add(definition.id);
             console.warn(`[SnowBunny] Custom Agent ${definition.name} failed.`, error);
-            // A dependent Agent must not run on a failed/stale dependency. The
-            // currentByAgent map still contains only the last valid result, and
-            // dependency validation will stop a dependent job when appropriate.
         }
     }
     return produced;
@@ -250,7 +273,6 @@ async function routeFeedback() {
     if (!api?.setExtensionPrompt || !agents()) return [];
     const reconciliation = await agents().reconcile({ persist: true });
     const state = reconciliation.state;
-    const definitions = new Map(state.definitions.map(definition => [definition.id, definition]));
     const current = agents().currentResultsFromState(state);
     const selected = [];
     let characters = 0;
