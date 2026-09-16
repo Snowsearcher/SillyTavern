@@ -40,6 +40,7 @@ import { initPersonaAuthoring } from './persona-authoring.js';
 import { initPersonaLibrary } from './persona-library.js';
 import { initPersonaSelector } from './persona-selector.js';
 import { initPhoneAgentsUi } from './phone-agents-ui.js';
+import { initPhoneArtwork } from './phone-artwork.js';
 import { initPhoneConversation } from './phone-conversation.js';
 import { initPhoneEvidence } from './phone-evidence.js';
 import { initPhoneRouting } from './phone-routing.js';
@@ -115,6 +116,7 @@ export function init() {
     initMessageIdentity();
     initTrackerStore();
     initPhoneStore();
+    initPhoneArtwork();
     initPhoneSocialNetwork();
     initPhoneSocialActions();
     initPhoneSocialWorld();
