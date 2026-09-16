@@ -1,5 +1,5 @@
 const FILE_PREFIX = 'snowbunny-phone-';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const POST_FORMATS = Object.freeze(['status', 'thread', 'community', 'image', 'notice', 'announcement']);
 
 let initialized = false;
@@ -25,6 +25,19 @@ function plainObject(value) {
 
 function safeArray(value) {
     return Array.isArray(value) ? value : [];
+}
+
+function uniqueStrings(value, limit = 500) {
+    const rows = [];
+    const seen = new Set();
+    for (const item of safeArray(value)) {
+        const text = String(item || '').trim();
+        if (!text || seen.has(text)) continue;
+        seen.add(text);
+        rows.push(text);
+        if (rows.length >= limit) break;
+    }
+    return rows;
 }
 
 function id(prefix) {
@@ -265,6 +278,15 @@ function normalizeAction(value, index = 0) {
     };
 }
 
+function normalizeSocial(value) {
+    const source = plainObject(value) ? value : {};
+    return {
+        followingActorKeys: uniqueStrings(source.followingActorKeys),
+        savedPostIds: uniqueStrings(source.savedPostIds),
+        reactedPostIds: uniqueStrings(source.reactedPostIds),
+    };
+}
+
 function defaultSettings() {
     return {
         enabled: false,
@@ -316,6 +338,7 @@ function normalizeState(value = {}) {
         profiles: safeArray(value.profiles).map(normalizeProfile).filter(Boolean),
         posts: safeArray(value.posts).map(normalizePost).filter(Boolean),
         actions: safeArray(value.actions).map(normalizeAction).filter(Boolean),
+        social: normalizeSocial(value.social),
         activity: safeArray(value.activity).filter(plainObject).slice(-200).map(clone),
     };
 }
@@ -441,6 +464,34 @@ function anchorVisible(anchor, endMessageId = '') {
     return end < 0 ? true : position <= end;
 }
 
+function toggleValue(values, target) {
+    const list = uniqueStrings(values);
+    const value = String(target || '').trim();
+    if (!value) return { values: list, active: false };
+    const index = list.indexOf(value);
+    if (index >= 0) {
+        list.splice(index, 1);
+        return { values: list, active: false };
+    }
+    list.push(value);
+    return { values: list, active: true };
+}
+
+async function toggleSocial(kind, target) {
+    const field = {
+        follow: 'followingActorKeys',
+        save: 'savedPostIds',
+        react: 'reactedPostIds',
+    }[kind];
+    if (!field) throw new Error('Unsupported social interaction.');
+    return (await mutatePhoneState(state => {
+        state.social = normalizeSocial(state.social);
+        const changed = toggleValue(state.social[field], target);
+        state.social[field] = changed.values;
+        return changed.active;
+    })).result;
+}
+
 async function setSettings(patch = {}) {
     return (await mutatePhoneState(state => {
         state.settings = normalizeSettings({
@@ -541,6 +592,9 @@ export function initPhoneStore() {
             appendMessage,
             appendAction,
             appendPost,
+            toggleFollow: actorKeyValue => toggleSocial('follow', actorKeyValue),
+            toggleSaved: postId => toggleSocial('save', postId),
+            toggleReaction: postId => toggleSocial('react', postId),
             getContact,
             getContactFromState,
         },
