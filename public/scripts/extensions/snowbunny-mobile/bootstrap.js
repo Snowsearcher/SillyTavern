@@ -1,3 +1,4 @@
+import { initComposerLayout } from './composer-layout.js';
 import { initContextView } from './context-view.js';
 import { init as initMobileShell } from './index.js';
 import {
@@ -47,5 +48,6 @@ export function init() {
     initSnowBunnyState();
     initMessageIdentity();
     initContextView();
+    initComposerLayout();
     initMobileShell();
 }
