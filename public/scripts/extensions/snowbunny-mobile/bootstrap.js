@@ -1,9 +1,11 @@
 import { initChatStatistics } from './chat-statistics.js';
+import { initCodex } from './codex.js';
 import { initComposerLayout } from './composer-layout.js';
 import { initContextView } from './context-view.js';
 import { initCreateMenu } from './create-menu.js';
 import { initCyoaNative } from './cyoa-native.js';
 import { init as initMobileShell } from './index.js';
+import { initLorebookStore } from './lorebook-store.js';
 import {
     currentMessageIdentity,
     ensureMessageIdentity,
@@ -57,6 +59,7 @@ function installNamespace() {
 export function init() {
     installNamespace();
     initSnowBunnyState();
+    initLorebookStore();
     initMessageIdentity();
     initContextView();
     initComposerLayout();
@@ -70,6 +73,7 @@ export function init() {
     initCyoaNative();
     initChatStatistics();
     initStoriesLibrary();
+    initCodex();
     initCreateMenu();
     initShellTransitions();
 }
