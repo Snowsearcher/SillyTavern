@@ -126,8 +126,7 @@ function keywordMatches(book, query) {
 }
 
 function exactRescueFallback(book, query) {
-    const matches = keywordMatches(book, query);
-    return matches.map(match => ({
+    return keywordMatches(book, query).map(match => ({
         ...match,
         reason: 'exact identity rescue · semantic index unavailable',
         vectorFallback: true,
@@ -147,10 +146,7 @@ async function meaningMatches(book, query) {
     }
     const result = await semanticApi.queryBook(book, query);
     if (!result.vectorReady) {
-        return {
-            ...result,
-            matches: exactRescueFallback(book, query),
-        };
+        return { ...result, matches: exactRescueFallback(book, query) };
     }
     return result;
 }
@@ -190,8 +186,29 @@ function fitBookMatches(book, matches) {
     return { selected, used, budget };
 }
 
+async function preloadEffectiveBooks() {
+    if (preloadPromise) return preloadPromise;
+    preloadPromise = (async () => {
+        const ids = lorebooks()?.effectiveIds?.() ?? [];
+        const next = new Map();
+        for (const id of ids) {
+            const existing = loadedBooks.get(id);
+            if (existing) {
+                next.set(id, existing);
+                continue;
+            }
+            const book = await lorebooks()?.load?.(id);
+            if (book) next.set(id, book);
+        }
+        loadedBooks = next;
+    })().finally(() => {
+        preloadPromise = null;
+    });
+    return preloadPromise;
+}
+
 async function routeLore({ includeDraft = false } = {}) {
-    await preloadEffectiveBooks({ routeAfterLoad: false });
+    await preloadEffectiveBooks();
     const api = context();
     const ids = lorebooks()?.effectiveIds?.() ?? [];
     const promptEntries = [];
@@ -252,38 +269,18 @@ async function routeLore({ includeDraft = false } = {}) {
     return lastRoutingReceipt;
 }
 
-async function preloadEffectiveBooks({ routeAfterLoad = true } = {}) {
-    if (preloadPromise) return preloadPromise;
-    preloadPromise = (async () => {
-        const ids = lorebooks()?.effectiveIds?.() ?? [];
-        const next = new Map();
-        for (const id of ids) {
-            const existing = loadedBooks.get(id);
-            if (existing) {
-                next.set(id, existing);
-                continue;
-            }
-            const book = await lorebooks()?.load?.(id);
-            if (book) next.set(id, book);
-        }
-        loadedBooks = next;
-        if (routeAfterLoad) await routeLore({ includeDraft: false });
-    })().finally(() => {
-        preloadPromise = null;
-    });
-    return preloadPromise;
-}
-
 function invalidateBook(bookId = '') {
     if (bookId) loadedBooks.delete(bookId);
     else loadedBooks.clear();
-    void preloadEffectiveBooks();
+    void preloadEffectiveBooks().then(() => routeLore({ includeDraft: false }));
 }
 
 function queueReceiptSave() {
     clearTimeout(receiptSaveTimer);
     receiptSaveTimer = setTimeout(() => {
-        void context()?.saveChat?.().catch?.(error => console.warn('[SnowBunny] Could not persist View Context Lore receipt.', error));
+        const save = context()?.saveChat;
+        if (typeof save !== 'function') return;
+        void save().catch(error => console.warn('[SnowBunny] Could not persist View Context Lore receipt.', error));
     }, 120);
 }
 
@@ -307,12 +304,13 @@ function registerEvents() {
         if (event) source.on(event, async () => {
             loadedBooks.clear();
             await preloadEffectiveBooks();
+            await routeLore({ includeDraft: false });
         });
     }
 
-    // This event is awaited by SillyTavern before it consumes/clears the text
-    // area or assembles the prompt. Semantic Meaning queries therefore finish
-    // in time to influence the actual generation, including the newest draft.
+    // SillyTavern awaits this event before it clears the composer or assembles
+    // the generation prompt. Meaning queries therefore include the newest user
+    // draft and finish in time to affect the actual request.
     if (types.GENERATION_AFTER_COMMANDS) {
         source.on(types.GENERATION_AFTER_COMMANDS, async (_type, _options, dryRun) => {
             await routeLore({ includeDraft: !dryRun });
@@ -339,5 +337,5 @@ export function initLoreRetrieval() {
     document.addEventListener('snowbunny:lorebooks-changed', event => invalidateBook(event.detail?.id || ''));
     document.addEventListener('snowbunny:lorebook-bindings-changed', () => invalidateBook(''));
     registerEvents();
-    void preloadEffectiveBooks();
+    void preloadEffectiveBooks().then(() => routeLore({ includeDraft: false }));
 }
