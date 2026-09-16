@@ -41,6 +41,7 @@ import { initPersonaLibrary } from './persona-library.js';
 import { initPersonaSelector } from './persona-selector.js';
 import { initPhoneAgentsUi } from './phone-agents-ui.js';
 import { initPhoneArtwork } from './phone-artwork.js';
+import { initPhoneArtworkLibrary } from './phone-artwork-library.js';
 import { initPhoneArtworkManagerUi } from './phone-artwork-manager-ui.js';
 import { initPhoneConversation } from './phone-conversation.js';
 import { initPhoneEvidence } from './phone-evidence.js';
@@ -119,6 +120,7 @@ export function init() {
     initTrackerStore();
     initPhoneStore();
     initPhoneArtwork();
+    initPhoneArtworkLibrary();
     initPhoneSocialNetwork();
     initPhoneSocialActions();
     initPhoneSocialWorld();
