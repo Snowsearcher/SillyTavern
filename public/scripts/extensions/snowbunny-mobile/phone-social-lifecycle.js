@@ -3,7 +3,6 @@ const WORKSPACE_ID = 'snowbunny-phone-workspace';
 let initialized = false;
 let observer = null;
 let queued = false;
-let attemptedOwners = new Set();
 
 function context() {
     return globalThis.SillyTavern?.getContext?.() ?? null;
@@ -21,44 +20,27 @@ function world() {
     return globalThis.SnowBunny?.phoneSocialWorld ?? null;
 }
 
-function stateApi() {
-    return globalThis.SnowBunny?.state ?? null;
-}
-
-function ownerKey() {
-    const storyId = String(stateApi()?.readChat?.()?.storyId || '');
-    if (storyId) return `story:${storyId}`;
-    const store = phone();
-    return `chat:${store?.refKey?.(store.currentRef?.()) || context()?.getCurrentChatId?.() || ''}`;
-}
-
 function eventVisible(value) {
     const store = phone();
     return store?.anchorVisible?.(value?.through) !== false && store?.sourceValid?.(value?.evidence) !== false;
 }
 
-function socialSurfaceOpen(root, network) {
-    if (!root || !network) return false;
-    if (root.querySelector('.sb-phone-app-grid')) return false;
-    const heading = root.querySelector('.sb-phone-head h2')?.textContent?.trim() || '';
-    return heading === String(network.name || 'Social');
+function socialSurfaceOpen(root) {
+    if (!root) return false;
+    return root.dataset.snowbunnyPhoneView === 'social'
+        || Boolean(root.querySelector('[data-snowbunny-social-surface="1"]'));
 }
 
 async function ensureInitialWorld() {
     const root = document.getElementById(WORKSPACE_ID);
-    if (!root) return;
-    const network = social()?.read?.();
-    if (!socialSurfaceOpen(root, network)) return;
+    if (!socialSurfaceOpen(root)) return;
     const store = phone();
     const engine = world();
+    const network = social()?.read?.();
     if (!store || !engine?.ensure) return;
     const state = await store.read();
     if (state?.settings?.enabled !== true) return;
     if ((state.posts || []).some(eventVisible)) return;
-
-    const key = ownerKey();
-    if (!key || attemptedOwners.has(key)) return;
-    attemptedOwners.add(key);
 
     const empty = root.querySelector('.sb-phone-empty');
     if (empty) empty.textContent = `Preparing ${network?.name || 'the public network'} from this Story…`;
@@ -93,7 +75,6 @@ async function maintainAfterUpkeep() {
 }
 
 function reset() {
-    attemptedOwners = new Set();
     queueInitialWorld();
 }
 
