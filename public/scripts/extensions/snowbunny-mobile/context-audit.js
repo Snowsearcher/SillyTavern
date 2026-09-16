@@ -104,10 +104,13 @@ function guidanceSummary() {
     const globalRules = globalThis.SnowBunny?.regex?.globalRules?.() || [];
     const api = context();
     const group = api?.groupId ? api?.groups?.find(item => String(item.id) === String(api.groupId)) : null;
+    const parsedCharacterId = api?.characterId === null || api?.characterId === undefined || api?.characterId === ''
+        ? Number.NaN
+        : Number.parseInt(String(api.characterId), 10);
     const members = group
         ? (group.members || []).map(avatar => api?.characters?.find(character => character.avatar === avatar)?.name || avatar)
-        : Number.isInteger(Number(api?.characterId)) && api?.characters?.[Number(api.characterId)]
-            ? [api.characters[Number(api.characterId)].name]
+        : Number.isInteger(parsedCharacterId) && api?.characters?.[parsedCharacterId]
+            ? [api.characters[parsedCharacterId].name]
             : [];
 
     return {
@@ -165,6 +168,7 @@ function normalizePromptRows(rows) {
 
 function captureChatCompletion(eventData) {
     if (!active || !Array.isArray(eventData?.chat)) return;
+    active.canonical = visibleCanonicalMessages();
     active.final = {
         backend: 'chat-completion',
         rows: normalizePromptRows(eventData.chat),
@@ -174,6 +178,7 @@ function captureChatCompletion(eventData) {
 
 function captureTextCompletion(data) {
     if (!active || !Array.isArray(data?.finalMesSend)) return;
+    active.canonical = visibleCanonicalMessages();
     active.final = {
         backend: 'text-completion',
         rows: normalizePromptRows(data.finalMesSend),
@@ -226,6 +231,7 @@ function historyReceipt() {
         omitted,
         finalRequestMessages: finalRows.length,
         finalRequestRoles: roles,
+        matchingNote: 'Included/omitted history is matched against the final outgoing request text. Formatting transforms can make a canonical message unmatchable even when equivalent text survived.',
     };
 }
 
