@@ -60,7 +60,7 @@ This is the outer-shell foundation, not the final Stories/Codex/Current Chat imp
 
 ### Current-chat Model selector
 
-`model-selector.js` now makes the right-drawer Model row functional without applying SillyTavern Connection Profiles wholesale.
+`model-selector.js` makes the right-drawer Model row functional without applying SillyTavern Connection Profiles wholesale.
 
 That distinction is deliberate: ST Connection Profiles can also apply Preset, Regex, prompt-processing and other fields, which would violate SnowBunny's separate current-chat ownership for those systems.
 
@@ -89,6 +89,23 @@ Still missing from Model: selecting among multiple saved connection profiles for
 - when the chat changes, SnowBunny reapplies that chat's preset through the real ST selector;
 - native preset changes are captured back into the current chat's SnowBunny selection state;
 - the edit/pencil path currently opens ST's real AI/preset controls until the dedicated phone preset editor is ported.
+
+### Current-chat Scenario
+
+`scenario.js` ports the settled SnowBunny four-field Scenario model directly into the current chat.
+
+- `What this story is about`;
+- `Genre and focus`;
+- `For the writer to know`;
+- `Important directions`;
+- per-chat `Use this Scenario` toggle;
+- Reset action in the editor;
+- canonical Scenario data stored in `chat_metadata.snowbunny`;
+- when enabled, Scenario is supplied to the main writer through ST's real extension-prompt mechanism as a system prompt;
+- Scenario is explicitly excluded from World Info scanning;
+- changing chats replaces the writer Scenario with that chat's own stored Scenario rather than sharing it at Story level.
+
+This is writer routing only. Memory Maker and other SnowBunny side systems will use their own explicit routing and must not inherit Scenario just because the Story Writer sees it.
 
 ### Current-chat utilities
 
@@ -178,7 +195,7 @@ The first narrow/mobile-width visual pass confirmed:
 - `No Persona` semantics that truly suppress Persona context rather than merely unlocking ST's current Persona.
 - Current-chat multi-connection/profile switching in Model; model/provider switching within the current ST API machinery is live.
 - Full mobile Preset editor with modules/reorder/import/export/utility prompts; only quick selection is live now.
-- Lorebooks / Scenario / Regex / Memory / Agents / CYOA right-drawer destinations.
+- Lorebooks / Regex / Memory / Agents / CYOA right-drawer destinations.
 - Final extension quick-action tray in the composer.
 - Tracker / Story State panels in the ST DOM.
 - Memory Maker proposal popups.
