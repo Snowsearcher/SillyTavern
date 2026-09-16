@@ -9,7 +9,7 @@ Primary recovered source reviewed:
 - `SNOWBUNNY_HANDOFF/source/app/lib/chat/phone_world.dart`
 - `SNOWBUNNY_HANDOFF/source/app/lib/chat/phone_design.dart`
 - `SNOWBUNNY_HANDOFF/source/app/lib/chat/phone_tools.dart`
-- prior Phone dashboard / SnowBunny planning material covering Messages, Nightowl, Settings, Gallery, Story time, contact acquisition, upkeep and artwork/profile behavior.
+- prior Phone dashboard / SnowBunny planning material covering Messages, Story-specific social media, Settings, Gallery, Story time, contact acquisition, upkeep and artwork/profile behavior.
 
 ## Product contract
 
@@ -21,13 +21,45 @@ The home screen is built around:
 - Story time;
 - Inbox status;
 - Messages;
-- Nightowl;
+- the Story's own public/social network;
 - Settings;
 - Gallery.
 
 Opening, reading or browsing the Phone does **not** advance fictional time by itself.
 
 Phone events may affect later story continuity when they actually happened. The Story Writer can receive relevant Phone continuity, but private phone information is not automatically known by every character.
+
+## Story-specific social network
+
+There is **no universal SnowBunny social app called Nightowl**.
+
+Every Story owns its own public/social network identity. The AI designs that identity from the Story's setting, era, technology or magic, Scenario, Lore/Codex and established fiction, then keeps it stable for that Story.
+
+Different Stories may naturally receive very different systems, for example:
+
+- a short-post public stream analogous to a microblog;
+- a threaded forum/community system analogous to a Reddit-like structure;
+- a friends/groups/community network analogous to a Facebook-like structure;
+- an image-first social system;
+- a guild board, public notice network or rumor board in a low-tech setting;
+- a magical, psychic, holographic or otherwise setting-native public medium;
+- a hybrid when the fiction genuinely supports one.
+
+The AI must not default every setting to a modern phone clone. A fantasy world can have a diegetic magical/public medium. A historical or low-tech world can use boards/notices/community correspondence. A futuristic world can invent something native to that world.
+
+The generated Story-level network identity includes:
+
+- fictional network name;
+- concise description;
+- interaction mode (`microblog`, `forum`, `community`, `image`, `bulletin`, or `hybrid`);
+- one allowed stock icon id;
+- simple terminology for feed/home, posts, replies, profiles and communities.
+
+The icon is selected from SnowBunny's stock icon catalog. The current implementation uses Font Awesome fallbacks for those semantic icon ids until the dedicated stock image assets are added. Later artwork can replace the fallback without changing the saved network identity.
+
+Do not use real product names such as Reddit/X/Facebook/etc. unless that real service is explicitly part of the Story's canon.
+
+A Story's network identity is shared across that Story's chats. A stand-alone chat may have a local network identity rather than inheriting another Story's network.
 
 ## Contact acquisition
 
@@ -39,9 +71,9 @@ A contact becomes available only when the player's Persona actually acquires con
 - an already-established number the Persona is shown to possess;
 - a Character actually sharing a private contact route.
 
-Discovery carries an exact quotation plus the stable SnowBunny message id/revision/source that established access. The result is validated against visible canonical story text before any contact is committed. Name matching alone is never sufficient.
+Discovery must carry exact source evidence tied to stable SnowBunny message identity. Name matching alone is never sufficient.
 
-Character / Codex shared identity is used when available so the same fictional person remains the same actor across Messages, Nightowl and Story context.
+Character / Codex shared identity is used when available so the same fictional person remains the same actor across Messages, the Story's public network and Story context.
 
 ## Private Messages
 
@@ -95,42 +127,17 @@ An absent Character cannot automatically:
 
 A visitor uses the destination/address they plausibly know. Story Writer knowledge cannot silently correct their private knowledge.
 
-## Pocket Phone Upkeep
+## Public/social world
 
-`phone-upkeep.js` is now a native built-in support engine rather than a locked placeholder.
+The public network should contain more than the current cast or current scene. Persistent background accounts can include ordinary users, local media, businesses, fandoms, workplaces, organizations, guilds, clubs and other setting-appropriate identities.
 
-Its cadence is based on completed assistant Story replies. The configured frequency is a count of completed story replies, not a real-time polling interval.
-
-Each run can perform two independent jobs:
-
-1. **Contact discovery** checks recent visible story text against actual Character / effective Codex Character identities. The model may propose a contact only by returning an exact candidate actor key, exact SnowBunny story message id and exact quotation. The app validates all three before saving anything.
-2. **Incoming-message upkeep** is considered only when fictional Story time is known and proactive incoming messages are enabled. A selector chooses at most two existing eligible contacts with a motivated reason to contact the player; selecting nobody is normal. The actual private reply is then generated through the same Character-aware Phone conversation engine.
-
-Unknown fictional time never creates a background polling loop. A contact that was already checked at the current Story time is not repeatedly reconsidered until Story time changes.
-
-The Agents surface exposes Pocket Phone Upkeep with:
-
-- on/off;
-- manual `Run Phone Upkeep now`;
-- cadence by completed Story replies;
-- recent-story window;
-- upkeep reasoning reply limit.
-
-Ordinary private-message output limits remain separate from Upkeep limits.
-
-## Nightowl
-
-Nightowl is the default social app concept from the old design.
-
-The social world should contain more than the current cast or current scene. Persistent background accounts can include ordinary users, local media, businesses, fandoms, workplaces, organizations and other setting-appropriate identities.
-
-The current venue or plot point must not dominate the feed through repetitive pseudo-advertising.
+The current venue or plot point must not dominate the network through repetitive pseudo-advertising.
 
 A public post exists publicly, but the system must not assume every Character has read it.
 
-The same actor may have both private Messages and public Nightowl activity while retaining one stable fictional identity.
+The same actor may have both private Messages and public social activity while retaining one stable fictional identity.
 
-The current native Nightowl screen can display stored profiles/posts. The full social-world generator and persistent background-account layer are still pending.
+The chosen Story network mode affects presentation and terminology. Forum-like Stories should be able to feel thread/community based; microblogs should feel like streams; community networks should emphasize people/groups; fantasy/low-tech networks should not be forced into modern terminology.
 
 ## Story ownership vs chat ownership
 
@@ -138,8 +145,9 @@ The recovered design distinguishes reusable Story/world presentation from curren
 
 Direction to preserve:
 
+- the social-network identity is Story-level;
 - persistent background social identities and reusable presentation/artwork can be Story-level where appropriate;
-- private contacts, message threads, current feed state, pending discoveries and current Phone settings are chat-specific;
+- private contacts, message threads, pending discoveries and current Phone settings remain chat-specific unless a later explicit sharing rule says otherwise;
 - imported artwork does not automatically create contacts or silently wire identities.
 
 ## Gallery and media
@@ -156,7 +164,7 @@ Gallery shows delivered Phone media. The fuller old artwork system still require
 - Artwork folders;
 - image-bundle import;
 - Character/profile picture assignment;
-- app icon assignment;
+- Story-network app icon assignment;
 - reusable background/profile artwork without inventing social relationships.
 
 ## Memory and context routing
@@ -184,8 +192,6 @@ Phone-derived continuity is tied to stable SnowBunny message identities and Stor
 
 Editing, deleting, hiding or swiping Story history must not leave invalid derived Phone facts feeding future generation. Historical data may remain recoverable/readable, but invalid branch-derived material is excluded from current evidence/routing until rebuilt or re-established.
 
-Contact acquisition itself is evidence-bound. If the exact story evidence that granted a contact disappears or changes revision/source, the contact is automatically excluded from the current visible/effective Phone state rather than silently surviving as valid continuity.
-
 ## Current implementation
 
 Implemented on `snowbunny-mobile`:
@@ -200,12 +206,6 @@ Implemented on `snowbunny-mobile`:
 - texting-style/presentation boundary restored from old behavior;
 - separate private-reply and upkeep output limits;
 - photo/voice proposal gating;
-- evidence-backed automatic contact discovery;
-- contact rollback-by-evidence when the source branch changes;
-- completed-reply cadence for Pocket Phone Upkeep;
-- fictional-time gated proactive incoming-message selection;
-- manual and automatic Phone Upkeep;
-- Agents card + advanced Phone Upkeep controls;
 - factual Phone evidence projection;
 - Memory Maker Phone evidence + fingerprint validation;
 - Memory Recall Phone relevance hints;
@@ -213,23 +213,32 @@ Implemented on `snowbunny-mobile`:
 - per-reply Phone View Context receipt;
 - native Phone dashboard with Persona, Story time and Inbox;
 - native Messages list/thread/composer;
-- native Nightowl feed display over stored profiles/posts;
+- native public-social display over stored profiles/posts;
 - native Settings for currently functional Phone controls;
 - native Gallery showing delivered Phone media;
-- composer Phone quick action when Phone is enabled.
+- composer Phone quick action when Phone is enabled;
+- evidence-backed automatic contact discovery from completed Story replies;
+- Pocket Phone Upkeep tied to completed Story replies and fictional Story time;
+- proactive-contact selector that may choose nobody;
+- Story-specific social-network identity designer;
+- Story-level saved network name/mode/terminology/stock-icon choice;
+- semantic stock-icon catalog with temporary Font Awesome visual fallbacks;
+- compatibility bridge that replaces the old temporary `Nightowl` label in the current Phone UI with the generated Story network identity.
 
 ## Still required for full parity
 
 Do not mark Pocket Phone complete until these are real:
 
-- Story-persistent background Nightowl users and social-world generation;
-- generated/maintained Nightowl profiles, feed pages and public reply threads;
+- public social-world generation/maintenance using the Story-specific network mode;
+- Story-persistent background public-network users;
+- mode-specific public UI: forum/thread/community vs stream vs image/network vs bulletin/fantasy presentation;
 - profile/picture generation and management;
 - Profiles & pictures / Artwork folders / image-bundle import;
-- richer Nightowl profile/feed/thread interactions;
+- actual stock social-app image assets replacing temporary icon fallbacks;
+- richer public-network profile/feed/thread interactions;
 - full media request fulfillment pipeline for generated photos/voice;
 - user-facing review/status for stale branch-derived Phone material;
 - final quick-tray integration once the shared composer extension tray replaces isolated quick actions;
 - narrow/mobile and true-device visual validation.
 
-These missing pieces should be implemented from the recovered contract above rather than improvised from generic social-app behavior.
+These missing pieces should be implemented from the recovered contract above rather than improvised from one fixed modern social-media app.
