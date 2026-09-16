@@ -10,9 +10,9 @@ Save distinctive events with future usefulness. Ordinary conversation, routine a
 
 Before creating a memory, look for an earlier account of the same event or connected episode. Prefer updating or merging connected memories when that produces one clearer historical account. Preserve useful chronology and lasting consequences. Propose deletion only when an accepted memory is actually wrong, duplicated, or no longer useful as history.
 
-An accepted Memory marked sourceChanged came from visible story evidence that was edited, swiped away, hidden, or removed after that Memory was accepted. Do not trust it as current evidence merely because it is saved. Compare it with the visible story supplied in this review. If current evidence confirms it, propose an edit with the correct complete details so approval reconnects it to current evidence. If current evidence contradicts it, propose the appropriate correction/removal. If the review does not contain enough evidence to judge it, leave it alone rather than guessing.
+An accepted Memory marked sourceChanged came from evidence that was edited, swiped away, hidden, removed, or otherwise changed after that Memory was accepted. Do not trust it as current evidence merely because it is saved. Compare it with the current evidence supplied in this review. If current evidence confirms it, propose an edit with the correct complete details so approval reconnects it to current evidence. If current evidence contradicts it, propose the appropriate correction/removal. If the review does not contain enough evidence to judge it, leave it alone rather than guessing.
 
-STRICT EVIDENCE RULES: use only the visible story messages supplied in this review, the accepted memories supplied for comparison, and the user's correction when revising a proposal. Do not infer historical facts from trackers, Scenario, Lorebooks/Codex, hidden thoughts/state, instructions, unchosen CYOA paths, or other support systems. Those are intentionally not provided to you.
+STRICT EVIDENCE RULES: use only the visible story messages supplied in this review, the actual delivered Pocket Phone events supplied in this review, the accepted memories supplied for comparison, and the user's correction when revising a proposal. Pocket Phone events are separate fictional events such as delivered private messages, published posts, or explicit phone actions. Do not infer historical facts from trackers, Scenario, Lorebooks/Codex, hidden thoughts or private continuity notes, instructions, unchosen CYOA paths, or other support systems. Those are intentionally not provided as historical evidence.
 
 Return JSON only in this shape:
 {"proposals":[{"action":"create|edit|merge|delete","targetIds":[],"title":"short readable title","details":"the memory in clear natural language","reason":"one brief concrete reason to keep or change it"}]}
@@ -29,6 +29,14 @@ function store() {
 
 function integrity() {
     return globalThis.SnowBunny?.memoryIntegrity ?? null;
+}
+
+function phoneEvidence() {
+    return globalThis.SnowBunny?.phoneEvidence ?? null;
+}
+
+function phoneStore() {
+    return globalThis.SnowBunny?.phone ?? null;
 }
 
 function visibleStory(limit = 40) {
@@ -144,6 +152,14 @@ function invalidSignature() {
     return [...(integrity()?.invalidIds?.() ?? new Set())].map(String).sort().join('|');
 }
 
+function memoryDestinationKey() {
+    const api = context();
+    const provider = api?.mainApi === 'openai'
+        ? api?.chatCompletionSettings?.chat_completion_source || ''
+        : api?.textCompletionSettings?.type || '';
+    return `${api?.mainApi || ''}:${provider}`;
+}
+
 async function review({ proposalId = '', correction = '', feedbackDecision = '' } = {}) {
     if (reviewing) return { count: 0, busy: true };
     const api = context();
@@ -162,6 +178,14 @@ async function review({ proposalId = '', correction = '', feedbackDecision = '' 
         const rows = visibleStory(settings.historyCount || 40);
         if (!rows.length) return { count: 0 };
         const source = store().sourceSnapshot(settings.historyCount || 40);
+        const phone = await phoneEvidence()?.memory?.({ destinationKey: memoryDestinationKey() }) || {
+            paragraphs: [], fingerprints: {}, events: [], version: 0,
+        };
+        if (phone.paragraphs.length) {
+            source.phoneEvidence = structuredClone(phone.fingerprints);
+            source.phoneChatRef = structuredClone(phoneStore()?.currentRef?.() || null);
+            source.phoneVersionAtReview = Number(phone.version) || 0;
+        }
         const sourceChangesAtStart = invalidSignature();
         const memories = readingMemories(state, prior);
         const invalidIds = integrity()?.invalidIds?.() ?? new Set();
@@ -184,12 +208,15 @@ async function review({ proposalId = '', correction = '', feedbackDecision = '' 
             })}\nUser decision on the current version: ${feedbackDecision || 'feedback'}\nUser correction/explanation: ${String(correction || '').trim()}\nReturn exactly one revised proposal or none. The revised result still requires approval.`
             : '';
 
+        const phoneText = phone.paragraphs.length
+            ? `\n\nActual delivered Pocket Phone events:\n${phone.paragraphs.join('\n\n')}`
+            : '';
         const userPrompt = `Existing accepted Memories, in story order:\n${JSON.stringify(memories.map(memory => ({
             id: memory.id,
             title: memory.title,
             details: memory.details,
             ...(invalidIds.has(String(memory.id)) ? { sourceChanged: true } : {}),
-        })))}\n\nAlready pending suggestions (do not duplicate):\n${JSON.stringify(pending)}\n\nRecent visible story evidence:\n${storyTranscript(rows)}${revisionText}`;
+        })))}\n\nAlready pending suggestions (do not duplicate):\n${JSON.stringify(pending)}\n\nRecent visible story evidence:\n${storyTranscript(rows)}${phoneText}${revisionText}`;
 
         const result = await api.generateRaw({
             prompt: userPrompt,
@@ -200,6 +227,9 @@ async function review({ proposalId = '', correction = '', feedbackDecision = '' 
 
         if (!store().sourceStillValid(source)) {
             throw new Error('The story changed while Memory Maker was reviewing it. Request a fresh review.');
+        }
+        if (source.phoneEvidence && !await phoneEvidence()?.validate?.(source.phoneEvidence)) {
+            throw new Error('Pocket Phone events changed while Memory Maker was reviewing them. Request a fresh review.');
         }
         await integrity()?.reconcile?.();
         if (invalidSignature() !== sourceChangesAtStart) {
