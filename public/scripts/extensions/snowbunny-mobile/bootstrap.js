@@ -1,6 +1,7 @@
 import { initChatStatistics } from './chat-statistics.js';
 import { initComposerLayout } from './composer-layout.js';
 import { initContextView } from './context-view.js';
+import { initCreateMenu } from './create-menu.js';
 import { initCyoaNative } from './cyoa-native.js';
 import { init as initMobileShell } from './index.js';
 import {
@@ -17,6 +18,7 @@ import { initScenario } from './scenario.js';
 import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
 import { initShellTransitions } from './shell-transitions.js';
+import { initStoriesLibrary } from './stories-library.js';
 import {
     deleteChatStateKey,
     initSnowBunnyState,
@@ -67,5 +69,7 @@ export function init() {
     initScenario();
     initCyoaNative();
     initChatStatistics();
+    initStoriesLibrary();
+    initCreateMenu();
     initShellTransitions();
 }
