@@ -29,3 +29,23 @@ jobs:
             | sort -z \
             | xargs -0 -n1 node --check
           node --check public/scripts/extensions/regex/engine.js
+
+      - name: Install root dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Lint SnowBunny Phone social files
+        run: >-
+          npx eslint --quiet
+          public/scripts/extensions/snowbunny-mobile/phone-store.js
+          public/scripts/extensions/snowbunny-mobile/phone-social-network.js
+          public/scripts/extensions/snowbunny-mobile/phone-social-world.js
+          public/scripts/extensions/snowbunny-mobile/phone-social-ui.js
+          public/scripts/extensions/snowbunny-mobile/phone-social-lifecycle.js
+          public/scripts/extensions/snowbunny-mobile/bootstrap.js
+
+      - name: Install test dependencies
+        run: npm ci --ignore-scripts --prefix tests
+
+      - name: Run focused Phone social tests
+        working-directory: tests
+        run: npm run test:unit -- snowbunny-phone-social.test.js --runInBand
