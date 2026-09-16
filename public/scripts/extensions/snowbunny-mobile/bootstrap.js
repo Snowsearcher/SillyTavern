@@ -2,6 +2,7 @@ import { initChatStatistics } from './chat-statistics.js';
 import { initCodex } from './codex.js';
 import { initComposerLayout } from './composer-layout.js';
 import { initContextView } from './context-view.js';
+import { initCreateCodexBridge } from './create-codex-bridge.js';
 import { initCreateMenu } from './create-menu.js';
 import { initCyoaNative } from './cyoa-native.js';
 import { init as initMobileShell } from './index.js';
@@ -79,5 +80,6 @@ export function init() {
     initCodex();
     initLoreRetrieval();
     initCreateMenu();
+    initCreateCodexBridge();
     initShellTransitions();
 }
