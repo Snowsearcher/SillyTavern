@@ -17,6 +17,7 @@ import {
 import { initMemberSelector } from './member-selector.js';
 import { initModelSelector } from './model-selector.js';
 import { initPersonaSelector } from './persona-selector.js';
+import { initRecentChats } from './recent-chats.js';
 import { initScenario } from './scenario.js';
 import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
@@ -74,6 +75,7 @@ export function init() {
     initCyoaNative();
     initChatStatistics();
     initStoriesLibrary();
+    initRecentChats();
     initCodex();
     initLoreRetrieval();
     initCreateMenu();
