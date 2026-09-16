@@ -13,6 +13,14 @@ function context() {
     return globalThis.SillyTavern?.getContext?.() ?? null;
 }
 
+function phone() {
+    return globalThis.SnowBunny?.phone ?? null;
+}
+
+function stateApi() {
+    return globalThis.SnowBunny?.state ?? null;
+}
+
 function id() {
     const value = context()?.uuidv4?.() || crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     return String(value).replaceAll('-', '');
@@ -101,9 +109,27 @@ function actorPicture(actor) {
     return '';
 }
 
+function currentStory() {
+    const api = stateApi();
+    const storyId = String(api?.readChat?.()?.storyId || '');
+    if (!storyId) return null;
+    const stories = api?.readGlobal?.()?.stories;
+    if (!Array.isArray(stories)) return null;
+    return stories.find(story => String(story?.id || '') === storyId) || null;
+}
+
+function storyProfilePicture(profileId) {
+    const idValue = String(profileId || '');
+    if (!idValue) return '';
+    const map = currentStory()?.phoneArtwork?.publicProfilePictures;
+    return map && typeof map === 'object' ? String(map[idValue] || '') : '';
+}
+
 function profilePicture(profile) {
     const explicit = String(profile?.picture || '').trim();
     if (explicit) return explicit;
+    const storyPicture = storyProfilePicture(profile?.id);
+    if (storyPicture) return storyPicture;
     const linked = actorPicture(profile?.actor);
     if (linked) return linked;
     const player = String(profile?.actor?.key || '') === 'player-public';
@@ -113,6 +139,54 @@ function profilePicture(profile) {
         try { return String(api.getThumbnailUrl('persona', persona) || ''); } catch (_) { return ''; }
     }
     return '';
+}
+
+function saveStoryProfilePicture(profileId, picture) {
+    const api = stateApi();
+    const storyId = String(api?.readChat?.()?.storyId || '');
+    if (!storyId) return false;
+    const globalState = api?.readGlobal?.();
+    const stories = Array.isArray(globalState?.stories) ? globalState.stories : [];
+    const story = stories.find(item => String(item?.id || '') === storyId);
+    if (!story) return false;
+    const phoneArtwork = story.phoneArtwork && typeof story.phoneArtwork === 'object' ? story.phoneArtwork : {};
+    const publicProfilePictures = phoneArtwork.publicProfilePictures && typeof phoneArtwork.publicProfilePictures === 'object'
+        ? { ...phoneArtwork.publicProfilePictures }
+        : {};
+    if (picture) publicProfilePictures[String(profileId)] = picture;
+    else delete publicProfilePictures[String(profileId)];
+    story.phoneArtwork = { ...phoneArtwork, publicProfilePictures, updatedAt: Date.now() };
+    story.updatedAt = Date.now();
+    api?.patchGlobal?.({ stories });
+    return true;
+}
+
+async function setPublicProfilePicture(profileId, picture, { shareWithStory = true } = {}) {
+    const store = phone();
+    if (!store?.mutate) throw new Error('Pocket Phone is unavailable.');
+    const idValue = String(profileId || '').trim();
+    if (!idValue) throw new Error('Choose a public profile first.');
+    const path = String(picture || '').trim().slice(0, 2048);
+    const result = await store.mutate(draft => {
+        const profile = (draft.profiles || []).find(item => String(item.id || '') === idValue);
+        if (!profile) throw new Error('That public profile is no longer available on this Story branch.');
+        profile.picture = path;
+        profile.updatedAt = Date.now();
+        return {
+            id: profile.id,
+            actorKey: store.actorKey?.(profile.actor) || '',
+            player: String(profile?.actor?.key || '') === 'player-public',
+        };
+    });
+    if (shareWithStory && !result.result?.player) saveStoryProfilePicture(idValue, path);
+    return result.result;
+}
+
+async function choosePublicProfilePicture(profileId, options = {}) {
+    const file = await pickImage();
+    if (!file) return null;
+    const path = await uploadImage(file, { prefix: options.prefix || 'public-profile' });
+    return setPublicProfilePicture(profileId, path, options);
 }
 
 export function initPhoneArtwork() {
@@ -126,6 +200,9 @@ export function initPhoneArtwork() {
             uploadImage,
             pickAndUpload,
             profilePicture,
+            storyProfilePicture,
+            setPublicProfilePicture,
+            choosePublicProfilePicture,
             maxImageBytes: MAX_IMAGE_BYTES,
         },
     };
