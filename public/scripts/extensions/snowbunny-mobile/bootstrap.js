@@ -1,3 +1,4 @@
+import { initChatStatistics } from './chat-statistics.js';
 import { initComposerLayout } from './composer-layout.js';
 import { initContextView } from './context-view.js';
 import { init as initMobileShell } from './index.js';
@@ -56,4 +57,5 @@ export function init() {
     initSnowBunnyShell();
     initShellActions();
     initPersonaSelector();
+    initChatStatistics();
 }
