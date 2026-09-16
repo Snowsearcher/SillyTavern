@@ -48,23 +48,28 @@ function refKey(ref) {
     return ref ? `${ref.kind}:${ref.owner}:${ref.chatId}` : '';
 }
 
-function currentStory() {
-    const storyId = snowState()?.readChat?.()?.storyId;
+function storyRecord(storyId) {
     if (!storyId) return null;
     const stories = safeArray(snowState()?.readGlobal?.()?.stories);
-    return stories.find(story => story?.id === storyId) ?? null;
+    return stories.find(story => String(story?.id) === String(storyId)) ?? null;
 }
 
-function ownerDescriptor() {
-    const story = currentStory();
-    if (story) {
-        return {
-            kind: 'story',
-            id: String(story.id),
-            label: String(story.title || 'Story'),
-            path: typeof story.memoryFilePath === 'string' ? story.memoryFilePath : '',
-        };
-    }
+function currentStory() {
+    return storyRecord(snowState()?.readChat?.()?.storyId);
+}
+
+function storyOwnerDescriptor(storyId) {
+    const story = storyRecord(storyId);
+    if (!story) return null;
+    return {
+        kind: 'story',
+        id: String(story.id),
+        label: String(story.title || 'Story'),
+        path: typeof story.memoryFilePath === 'string' ? story.memoryFilePath : '',
+    };
+}
+
+function standaloneOwnerDescriptor() {
     const ref = currentRef();
     if (!ref) return null;
     const chatState = snowState()?.readChat?.() || {};
@@ -73,7 +78,17 @@ function ownerDescriptor() {
         id: refKey(ref),
         label: 'Stand-alone chat',
         path: typeof chatState.memoryFilePath === 'string' ? chatState.memoryFilePath : '',
+        ref,
     };
+}
+
+function ownerDescriptor() {
+    const story = currentStory();
+    return story ? storyOwnerDescriptor(story.id) : standaloneOwnerDescriptor();
+}
+
+function ownerKey(owner) {
+    return owner ? `${owner.kind}:${owner.id}` : '';
 }
 
 function defaultSettings() {
@@ -97,6 +112,7 @@ function normalizeMemory(memory, index = 0) {
         title,
         details,
         source: plainObject(memory.source) ? clone(memory.source) : null,
+        lineage: plainObject(memory.lineage) ? clone(memory.lineage) : null,
         order: Number.isFinite(Number(memory.order)) ? Number(memory.order) : index + 1,
         createdAt: Number(memory.createdAt) || Date.now(),
         updatedAt: Number(memory.updatedAt) || Number(memory.createdAt) || Date.now(),
@@ -113,6 +129,7 @@ function normalizeProposal(proposal, index = 0) {
     return {
         id: String(proposal.id || id('proposal')),
         baseVersion: Number.isInteger(Number(proposal.baseVersion)) ? Number(proposal.baseVersion) : 0,
+        batchId: proposal.batchId ? String(proposal.batchId) : '',
         action,
         targetIds: safeArray(proposal.targetIds).map(String),
         expected: safeArray(proposal.expected).map(item => clone(item)),
@@ -120,9 +137,12 @@ function normalizeProposal(proposal, index = 0) {
         details,
         reason,
         source: plainObject(proposal.source) ? clone(proposal.source) : null,
+        origin: plainObject(proposal.origin) ? clone(proposal.origin) : null,
         order: Number.isFinite(Number(proposal.order)) ? Number(proposal.order) : index + 1,
         createdAt: Number(proposal.createdAt) || Date.now(),
         revisedFrom: proposal.revisedFrom ? String(proposal.revisedFrom) : '',
+        needsReview: proposal.needsReview === true,
+        staleReason: String(proposal.staleReason || ''),
     };
 }
 
@@ -164,31 +184,52 @@ function resetCache() {
     cachePath = '';
 }
 
-async function readCurrent({ fresh = false } = {}) {
-    const owner = ownerDescriptor();
+async function readOwner(owner, { fresh = false, useCache = true } = {}) {
     if (!owner) return normalizeState();
-    const key = `${owner.kind}:${owner.id}`;
-    if (!fresh && cacheKey === key && cacheState) return clone(cacheState);
+    const key = ownerKey(owner);
+    if (useCache && !fresh && cacheKey === key && cacheState) return clone(cacheState);
     if (!owner.path) {
-        cacheKey = key;
-        cachePath = '';
-        cacheState = normalizeState();
-        return clone(cacheState);
+        const empty = normalizeState();
+        if (useCache) {
+            cacheKey = key;
+            cachePath = '';
+            cacheState = empty;
+        }
+        return clone(empty);
     }
     try {
         const response = await fetch(owner.path, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        cacheState = normalizeState(await response.json());
-        cacheKey = key;
-        cachePath = owner.path;
-        return clone(cacheState);
+        const parsed = normalizeState(await response.json());
+        if (useCache) {
+            cacheState = parsed;
+            cacheKey = key;
+            cachePath = owner.path;
+        }
+        return clone(parsed);
     } catch (error) {
-        console.warn('[SnowBunny] Could not load Memory state. Using an empty state until it is saved again.', error);
-        cacheState = normalizeState();
-        cacheKey = key;
-        cachePath = owner.path;
-        return clone(cacheState);
+        console.warn(`[SnowBunny] Could not load Memory state for ${owner.label || key}.`, error);
+        const empty = normalizeState();
+        if (useCache) {
+            cacheState = empty;
+            cacheKey = key;
+            cachePath = owner.path;
+        }
+        return clone(empty);
     }
+}
+
+async function readCurrent({ fresh = false } = {}) {
+    return readOwner(ownerDescriptor(), { fresh, useCache: true });
+}
+
+async function readStory(storyId, { fresh = false } = {}) {
+    return readOwner(storyOwnerDescriptor(storyId), { fresh, useCache: ownerKey(storyOwnerDescriptor(storyId)) === ownerKey(ownerDescriptor()) });
+}
+
+async function readStandalone({ fresh = false } = {}) {
+    const owner = standaloneOwnerDescriptor();
+    return readOwner(owner, { fresh, useCache: ownerKey(owner) === ownerKey(ownerDescriptor()) });
 }
 
 function updateOwnerPath(owner, path) {
@@ -196,21 +237,25 @@ function updateOwnerPath(owner, path) {
         const global = snowState()?.readGlobal?.() || {};
         const stories = safeArray(global.stories);
         const story = stories.find(item => String(item.id) === owner.id);
-        if (!story) throw new Error('Current Story no longer exists.');
+        if (!story) throw new Error('The target Story no longer exists.');
         story.memoryFilePath = path;
         story.updatedAt = Date.now();
         snowState()?.patchGlobal?.({ stories });
         return;
     }
-    snowState()?.patchChat?.({ memoryFilePath: path });
+    if (owner.kind === 'chat') {
+        if (owner.id !== refKey(currentRef())) throw new Error('SnowBunny can only update the open chat’s local Memory pointer.');
+        snowState()?.patchChat?.({ memoryFilePath: path });
+    }
 }
 
-async function writeCurrent(input) {
+async function writeOwner(owner, input, { forceNewFile = false, useCache = true } = {}) {
     const api = context();
-    const owner = ownerDescriptor();
-    if (!owner || !api?.getRequestHeaders) throw new Error('Open a chat before saving Memories.');
+    if (!owner || !api?.getRequestHeaders) throw new Error('A valid Memory owner is required.');
     const state = normalizeState(input);
-    const pathHint = owner.path || cachePath;
+    const key = ownerKey(owner);
+    const cachedPath = cacheKey === key ? cachePath : '';
+    const pathHint = forceNewFile ? '' : (owner.path || cachedPath);
     const fileId = pathHint
         ? String(pathHint).split('/').pop()?.replace(/^snowbunny-memory-/, '').replace(/\.json$/i, '') || id('owner')
         : id('owner');
@@ -226,12 +271,36 @@ async function writeCurrent(input) {
     const result = await response.json();
     const path = String(result?.path || pathHint || '');
     if (!path) throw new Error('SillyTavern did not return a Memory file path.');
-    if (path !== owner.path) updateOwnerPath(owner, path);
-    cacheKey = `${owner.kind}:${owner.id}`;
-    cachePath = path;
-    cacheState = state;
-    document.dispatchEvent(new CustomEvent('snowbunny:memories-changed', { detail: { owner: clone(owner) } }));
+    if (path !== owner.path || forceNewFile) updateOwnerPath(owner, path);
+    if (useCache) {
+        cacheKey = key;
+        cachePath = path;
+        cacheState = state;
+    }
+    document.dispatchEvent(new CustomEvent('snowbunny:memories-changed', { detail: { owner: clone({ ...owner, path }) } }));
     return clone(state);
+}
+
+async function writeCurrent(input) {
+    return writeOwner(ownerDescriptor(), input, { useCache: true });
+}
+
+async function writeStory(storyId, input, options = {}) {
+    const owner = storyOwnerDescriptor(storyId);
+    if (!owner) throw new Error('The target Story no longer exists.');
+    return writeOwner(owner, input, {
+        forceNewFile: options.forceNewFile === true,
+        useCache: ownerKey(owner) === ownerKey(ownerDescriptor()),
+    });
+}
+
+async function writeStandalone(input, options = {}) {
+    const owner = standaloneOwnerDescriptor();
+    if (!owner) throw new Error('Open a chat before saving stand-alone Memories.');
+    return writeOwner(owner, input, {
+        forceNewFile: options.forceNewFile === true,
+        useCache: ownerKey(owner) === ownerKey(ownerDescriptor()),
+    });
 }
 
 function messageEvidence(limit = 40) {
@@ -263,7 +332,7 @@ function sourceSnapshot(historyCount = 40) {
 function sourceStillValid(source) {
     if (!plainObject(source)) return true;
     if (refKey(source.chatRef) !== refKey(currentRef())) return false;
-    const current = new Map(messageEvidence(500).map(item => [item.id, item]));
+    const current = new Map(messageEvidence(100000).map(item => [item.id, item]));
     for (const expected of safeArray(source.messages)) {
         const found = current.get(String(expected.id));
         if (!found || found.revision !== Number(expected.revision) || found.source !== String(expected.source)) return false;
@@ -271,10 +340,10 @@ function sourceStillValid(source) {
     return true;
 }
 
-async function addMemory({ title, details, source = null } = {}) {
+async function addMemory({ title, details, source = null, lineage = null } = {}) {
     const state = await readCurrent();
     const order = Math.max(0, ...state.memories.map(memory => Number(memory.order) || 0)) + 1;
-    state.memories.push(normalizeMemory({ id: id('memory'), title, details, source, order }));
+    state.memories.push(normalizeMemory({ id: id('memory'), title, details, source, lineage, order }));
     state.version += 1;
     return writeCurrent(state);
 }
@@ -331,16 +400,34 @@ function sameExpected(actual, expected) {
     return JSON.stringify(actual) === JSON.stringify(expected);
 }
 
+function rebaseSiblingProposals(state, accepted, previousVersion, nextVersion) {
+    for (const proposal of state.proposals) {
+        if (proposal.id === accepted.id || proposal.baseVersion !== previousVersion) continue;
+        const actualTargets = state.memories.filter(memory => proposal.targetIds.includes(memory.id));
+        const unaffected = proposal.targetIds.length === 0 || sameExpected(actualTargets, proposal.expected);
+        if (unaffected) {
+            proposal.baseVersion = nextVersion;
+            proposal.needsReview = false;
+            proposal.staleReason = '';
+        } else {
+            proposal.needsReview = true;
+            proposal.staleReason = 'Another accepted Memory changed one of this suggestion’s targets.';
+        }
+    }
+}
+
 async function acceptProposal(proposalId) {
     const state = await readCurrent({ fresh: true });
     const proposal = state.proposals.find(item => item.id === proposalId);
     if (!proposal) throw new Error('This suggestion is no longer pending.');
     if (proposal.baseVersion !== state.version) throw new Error('Memories changed after this suggestion was made. Ask Memory Maker to review again.');
+    if (proposal.needsReview) throw new Error(proposal.staleReason || 'This suggestion needs review again before it can be saved.');
     if (!sourceStillValid(proposal.source)) throw new Error('The story text behind this suggestion changed. Review it again before saving.');
 
     const targets = state.memories.filter(memory => proposal.targetIds.includes(memory.id));
     if (!sameExpected(targets, proposal.expected)) throw new Error('A Memory in this suggestion changed. Review it again before saving.');
 
+    const previousVersion = state.version;
     const before = clone(targets);
     const targetIndices = proposal.targetIds
         .map(memoryId => state.memories.findIndex(memory => memory.id === memoryId))
@@ -354,6 +441,7 @@ async function acceptProposal(proposalId) {
             title: proposal.title,
             details: proposal.details,
             source: proposal.source,
+            lineage: proposal.origin ? { proposalOrigin: clone(proposal.origin) } : null,
             order: proposal.action === 'create'
                 ? Math.max(0, ...state.memories.map(item => Number(item.order) || 0)) + 1
                 : Number(proposal.expected?.[0]?.order) || proposal.order,
@@ -372,8 +460,10 @@ async function acceptProposal(proposalId) {
         proposal: clone(proposal),
         before,
     });
+    const nextVersion = previousVersion + 1;
     state.proposals = state.proposals.filter(item => item.id !== proposalId);
-    state.version += 1;
+    rebaseSiblingProposals(state, proposal, previousVersion, nextVersion);
+    state.version = nextVersion;
     return writeCurrent(state);
 }
 
@@ -396,6 +486,10 @@ function initMemoryStore() {
         memories: {
             read: readCurrent,
             write: writeCurrent,
+            readStory,
+            writeStory,
+            readStandalone,
+            writeStandalone,
             add: addMemory,
             update: updateMemory,
             delete: deleteMemory,
@@ -407,9 +501,14 @@ function initMemoryStore() {
             sourceSnapshot,
             sourceStillValid,
             owner: ownerDescriptor,
+            storyOwner: storyOwnerDescriptor,
+            standaloneOwner: standaloneOwnerDescriptor,
             currentRef,
             refKey,
+            normalizeState,
+            normalizeMemory,
             normalizeProposal,
+            newId: id,
             resetCache,
         },
     };
