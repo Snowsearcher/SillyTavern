@@ -21,6 +21,10 @@ function maker() {
     return globalThis.SnowBunny?.memoryMaker ?? null;
 }
 
+function integrity() {
+    return globalThis.SnowBunny?.memoryIntegrity ?? null;
+}
+
 function snowState() {
     return globalThis.SnowBunny?.state ?? null;
 }
@@ -91,6 +95,10 @@ function installStyles() {
     margin: 7px 0; padding: 11px 12px; border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 57%, transparent);
     border-radius: 17px; background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 55%, transparent);
   }
+  .snowbunny-memory-item.source-changed {
+    border-color: color-mix(in srgb, #e5aa68 52%, var(--SmartThemeBorderColor));
+    background: linear-gradient(145deg, color-mix(in srgb, #e5aa68 8%, transparent), color-mix(in srgb, var(--SmartThemeBlurTintColor) 55%, transparent));
+  }
   .snowbunny-memory-item-head, .snowbunny-memory-suggestion-head { display: flex; align-items: center; gap: 8px; }
   .snowbunny-memory-item-head strong, .snowbunny-memory-suggestion-head strong { flex: 1; min-width: 0; font-size: .84rem; }
   .snowbunny-memory-item-head button {
@@ -98,6 +106,11 @@ function installStyles() {
   }
   .snowbunny-memory-item p, .snowbunny-memory-suggestion p { margin: 7px 0 0; font-size: .75rem; line-height: 1.48; white-space: pre-wrap; }
   .snowbunny-memory-reason { opacity: .62; }
+  .snowbunny-memory-source-warning {
+    display: flex; align-items: flex-start; gap: 7px; margin: 8px 0 0; padding: 8px 9px;
+    border-radius: 12px; background: color-mix(in srgb, #e5aa68 12%, transparent); font-size: .68rem; line-height: 1.4;
+  }
+  .snowbunny-memory-source-warning i { margin-top: 2px; color: #e5aa68; }
   .snowbunny-memory-badge {
     display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border-radius: 999px;
     background: color-mix(in srgb, var(--SmartThemeEmColor, #c7a8ff) 12%, transparent); font-size: .62rem; font-weight: 760; opacity: .78;
@@ -155,6 +168,15 @@ function proposalIntro(proposal) {
     if (proposal.action === 'merge') return 'Memory Maker wants to combine Memories';
     if (proposal.action === 'delete') return 'Memory Maker wants to remove a Memory';
     return 'Memory Maker wants to save a new Memory';
+}
+
+function sourceWarning() {
+    const warning = el('div', 'snowbunny-memory-source-warning');
+    warning.append(
+        icon('fa-triangle-exclamation'),
+        el('span', '', 'The visible story this Memory came from changed after it was saved. Memory Recall will not use it until the evidence is reviewed again. Ask Memory Maker from the source chat to reconnect, correct, or remove it.'),
+    );
+    return warning;
 }
 
 function composerHeight() {
@@ -237,14 +259,20 @@ async function renderSaved(body, state) {
     const list = el('div'); body.append(list);
     const render = () => {
         const query = search.value.trim().toLowerCase(); list.replaceChildren();
+        const invalidIds = integrity()?.invalidIds?.() ?? new Set();
         const memories = (state.memories || []).filter(memory => !query || `${memory.title} ${memory.details}`.toLowerCase().includes(query));
         if (!memories.length) list.append(el('div', 'snowbunny-memory-empty', state.memories?.length ? 'No saved Memories match this search.' : 'No saved Memories yet. Memory Maker can propose them, or you can add one yourself.'));
         for (const memory of memories) {
-            const item = el('article', 'snowbunny-memory-item');
+            const changed = invalidIds.has(String(memory.id));
+            const item = el('article', `snowbunny-memory-item${changed ? ' source-changed' : ''}`);
+            item.dataset.memoryId = memory.id;
             const head = el('div', 'snowbunny-memory-item-head'); head.append(el('strong', '', memory.title));
+            if (changed) head.append(el('span', 'snowbunny-memory-badge', 'Needs review'));
             const edit = el('button'); edit.type = 'button'; edit.title = 'Edit'; edit.append(icon('fa-pencil')); edit.addEventListener('click', () => openMemoryEditor(memory));
             const remove = el('button'); remove.type = 'button'; remove.title = 'Delete'; remove.append(icon('fa-trash')); remove.addEventListener('click', async () => { if (!window.confirm(`Delete Memory “${memory.title}”?`)) return; await store().delete(memory.id); await renderMemorySheet(); });
-            head.append(edit, remove); item.append(head, el('p', '', memory.details)); list.append(item);
+            head.append(edit, remove); item.append(head, el('p', '', memory.details));
+            if (changed) item.append(sourceWarning());
+            list.append(item);
         }
     };
     search.addEventListener('input', render); render();
@@ -273,6 +301,7 @@ function suggestionBlock(proposal, state) {
     if (proposal.action !== 'create') {
         const current = (state.memories || []).filter(memory => proposal.targetIds.includes(memory.id));
         if (current.length) item.append(el('p', 'snowbunny-memory-reason', `Current: ${current.map(memory => memory.title).join(', ')}`));
+        if (proposal.targetIds.some(memoryId => integrity()?.isInvalid?.(memoryId))) item.append(sourceWarning());
     }
     if (proposal.details) item.append(el('p', '', proposal.details));
     item.append(el('p', 'snowbunny-memory-reason', `Reason: ${proposal.reason}`));
@@ -297,6 +326,7 @@ async function renderMemorySheet() {
     if (!sheet) return;
     const body = sheet.querySelector('.snowbunny-memory-body');
     if (!body) return;
+    await integrity()?.reconcile?.();
     const state = await store().read({ fresh: true });
     body.replaceChildren(el('div', 'snowbunny-memory-owner', ownerText()));
     if (activeTab === 'suggestions') await renderSuggestions(body, state); else await renderSaved(body, state);
@@ -358,6 +388,7 @@ async function renderProposalCard() {
     if (proposal.action !== 'create') {
         const current = (state.memories || []).filter(memory => proposal.targetIds.includes(memory.id));
         if (current.length) body.append(el('p', 'snowbunny-memory-reason', `Current: ${current.map(memory => `${memory.title}: ${memory.details}`).join('\n\n')}`));
+        if (proposal.targetIds.some(memoryId => integrity()?.isInvalid?.(memoryId))) body.append(sourceWarning());
     }
     if (proposal.details) body.append(el('p', '', proposal.details));
     body.append(el('p', 'snowbunny-memory-reason', `Reason: ${proposal.reason}`));
@@ -385,7 +416,12 @@ async function enhance() {
         const value = row.querySelector('.snowbunny-shell-row-value');
         if (value) {
             const state = await store().read();
-            value.textContent = state.proposals?.length ? `${state.proposals.length} ready` : state.memories?.length ? `${state.memories.length} saved` : 'Empty';
+            const invalidCount = integrity()?.invalidIds?.()?.size || 0;
+            value.textContent = state.proposals?.length
+                ? `${state.proposals.length} ready`
+                : invalidCount
+                    ? `${invalidCount} need review`
+                    : state.memories?.length ? `${state.memories.length} saved` : 'Empty';
         }
     }
     await renderProposalCard();
@@ -398,7 +434,7 @@ function registerEvents() {
             const event = types[name]; if (event) source.on(event, () => { if (name === 'CHAT_CHANGED' || name === 'CHAT_LOADED') snowState()?.deleteChatKey?.('memorySnoozedProposalId'); queueEnhance(); });
         }
     }
-    for (const name of ['snowbunny:memories-changed', 'snowbunny:memory-proposals-ready', 'snowbunny:memory-maker-status']) {
+    for (const name of ['snowbunny:memories-changed', 'snowbunny:memory-proposals-ready', 'snowbunny:memory-maker-status', 'snowbunny:memory-integrity-changed']) {
         document.addEventListener(name, queueEnhance);
     }
 }
