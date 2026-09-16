@@ -82,6 +82,11 @@ function read() {
     return clone(normalizeLibrary(stateApi()?.readChat?.()?.phoneArtworkLibrary));
 }
 
+function dispatchChanged(library) {
+    if (typeof globalThis.document === 'undefined' || typeof globalThis.CustomEvent !== 'function') return;
+    globalThis.document.dispatchEvent(new CustomEvent('snowbunny:phone-artwork-library-changed', { detail: { library: clone(library) } }));
+}
+
 function write(input) {
     const library = normalizeLibrary({ ...input, updatedAt: Date.now() });
     const storyContainer = currentStoryContainer();
@@ -94,7 +99,7 @@ function write(input) {
     } else {
         stateApi()?.patchChat?.({ phoneArtworkLibrary: clone(library) });
     }
-    document.dispatchEvent(new CustomEvent('snowbunny:phone-artwork-library-changed', { detail: { library: clone(library) } }));
+    dispatchChanged(library);
     return clone(library);
 }
 
