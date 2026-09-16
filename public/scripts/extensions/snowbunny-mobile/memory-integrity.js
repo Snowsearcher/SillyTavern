@@ -88,11 +88,14 @@ async function reconcile() {
     for (const memory of memoryState.memories || []) {
         const sourceRef = memory?.source?.chatRef;
         if (!sourceRef || refKey(sourceRef) !== currentKey) continue;
-        if (sourceStillValidHere(memory.source, currentKey, evidenceMap)) next.delete(String(memory.id));
+        const storyValid = sourceStillValidHere(memory.source, currentKey, evidenceMap);
+        const phoneValid = typeof memoryStore.phoneSourceStillValid === 'function'
+            ? await memoryStore.phoneSourceStillValid(memory.source)
+            : true;
+        if (storyValid && phoneValid) next.delete(String(memory.id));
         else next.add(String(memory.id));
     }
 
-    // Remove IDs that no longer exist in the owner Memory store.
     const existing = new Set((memoryState.memories || []).map(memory => String(memory.id)));
     for (const memoryId of [...next]) if (!existing.has(memoryId)) next.delete(memoryId);
 
@@ -131,6 +134,7 @@ export function initMemoryIntegrity() {
     initialized = true;
     registerEvents();
     document.addEventListener('snowbunny:memories-changed', scheduleReconcile);
+    document.addEventListener('snowbunny:phone-changed', scheduleReconcile);
     const existing = globalThis.SnowBunny && typeof globalThis.SnowBunny === 'object' ? globalThis.SnowBunny : {};
     globalThis.SnowBunny = {
         ...existing,
