@@ -43,6 +43,7 @@ import { initPhoneAgentsUi } from './phone-agents-ui.js';
 import { initPhoneConversation } from './phone-conversation.js';
 import { initPhoneEvidence } from './phone-evidence.js';
 import { initPhoneRouting } from './phone-routing.js';
+import { initPhoneSocialLifecycle } from './phone-social-lifecycle.js';
 import { initPhoneSocialNetwork } from './phone-social-network.js';
 import { initPhoneSocialUi } from './phone-social-ui.js';
 import { initPhoneSocialWorld } from './phone-social-world.js';
@@ -120,6 +121,7 @@ export function init() {
     initPhoneUpkeep();
     initPhoneUi();
     initPhoneSocialUi();
+    initPhoneSocialLifecycle();
     initPhoneAgentsUi();
     initMemoryStore();
     initAgentStore();
