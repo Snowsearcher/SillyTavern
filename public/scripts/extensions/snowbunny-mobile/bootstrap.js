@@ -5,6 +5,7 @@ import { initCharacterCodexLinks } from './character-codex-links.js';
 import { initCharacterLibrary } from './character-library.js';
 import { initChatStatistics } from './chat-statistics.js';
 import { initCodex } from './codex.js';
+import { initCodexLinkedCharacterUi } from './codex-linked-character-ui.js';
 import { initComposerLayout } from './composer-layout.js';
 import { initContextAudit } from './context-audit.js';
 import { initContextView } from './context-view.js';
@@ -132,6 +133,7 @@ export function init() {
     initStoryCreateSafety();
     initRecentChats();
     initCodex();
+    initCodexLinkedCharacterUi();
     initStoryLorebooks();
     initLoreRetrieval();
     initMemoryUi();
