@@ -1,3 +1,4 @@
+import { initAgentsUi } from './agents-ui.js';
 import { initChatStatistics } from './chat-statistics.js';
 import { initCodex } from './codex.js';
 import { initComposerLayout } from './composer-layout.js';
@@ -99,6 +100,7 @@ export function init() {
     initLoreRetrieval();
     initMemoryUi();
     initTrackerUi();
+    initAgentsUi();
     initCreateMenu();
     initCreateCodexBridge();
     initShellTransitions();
