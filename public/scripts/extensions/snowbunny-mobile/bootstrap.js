@@ -39,6 +39,7 @@ import { initNarrator } from './narrator.js';
 import { initPersonaAuthoring } from './persona-authoring.js';
 import { initPersonaLibrary } from './persona-library.js';
 import { initPersonaSelector } from './persona-selector.js';
+import { initPhoneAgentsUi } from './phone-agents-ui.js';
 import { initPhoneConversation } from './phone-conversation.js';
 import { initPhoneEvidence } from './phone-evidence.js';
 import { initPhoneRouting } from './phone-routing.js';
@@ -113,6 +114,7 @@ export function init() {
     initPhoneConversation();
     initPhoneUpkeep();
     initPhoneUi();
+    initPhoneAgentsUi();
     initMemoryStore();
     initAgentStore();
     initMemoryIntegrity();
