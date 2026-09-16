@@ -14,6 +14,10 @@ function artwork() {
     return globalThis.SnowBunny?.phoneArtwork ?? null;
 }
 
+function library() {
+    return globalThis.SnowBunny?.phoneArtworkLibrary ?? null;
+}
+
 function el(tag, className = '') {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -37,19 +41,29 @@ function installStyles() {
     border-radius: 50%; background: color-mix(in srgb, currentColor 8%, transparent); font-size: .67rem;
   }
   #${WORKSPACE_ID} .sb-phone-social-author-art img,
-  #${WORKSPACE_ID} .sb-phone-social-profile-art img { width: 100%; height: 100%; display: block; object-fit: cover; }
+  #${WORKSPACE_ID} .sb-phone-social-profile-art img,
+  #${WORKSPACE_ID} .sb-phone-social-network-art img { width: 100%; height: 100%; display: block; object-fit: cover; }
   #${WORKSPACE_ID} .sb-phone-social-author[data-snowbunny-profile-art="1"] { align-items: center; }
   #${WORKSPACE_ID} .sb-phone-social-profile-art {
     width: 68px; min-width: 68px; height: 68px; overflow: hidden; display: grid; place-items: center;
     border-radius: 20px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: 1.18rem;
   }
+  #${WORKSPACE_ID} .sb-phone-social-network-art {
+    width: 30px; height: 30px; overflow: hidden; display: inline-grid; place-items: center; border-radius: 9px;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+  }
+  #${WORKSPACE_ID} .sb-phone-social-identity-icon > .sb-phone-social-network-art { width: 46px; height: 46px; border-radius: 15px; }
 }
 `;
     document.head.append(style);
 }
 
+function workspace() {
+    return document.getElementById(WORKSPACE_ID);
+}
+
 function socialRoot() {
-    const root = document.getElementById(WORKSPACE_ID);
+    const root = workspace();
     return root?.dataset?.snowbunnyPhoneView === 'social' ? root : null;
 }
 
@@ -98,9 +112,7 @@ function artNode(profile, className) {
         image.src = source;
         image.alt = '';
         host.append(image);
-    } else {
-        host.append(icon('fa-user'));
-    }
+    } else host.append(icon('fa-user'));
     return host;
 }
 
@@ -125,20 +137,55 @@ function decorateProfiles(root, indexes) {
     }
 }
 
+function networkArt(source) {
+    const host = el('span', 'sb-phone-social-network-art');
+    const image = new Image();
+    image.src = source;
+    image.alt = '';
+    host.append(image);
+    return host;
+}
+
+function applyNetworkArt(container, source) {
+    if (!container) return;
+    const existing = container.querySelector(':scope > .sb-phone-social-network-art');
+    const stockIcon = container.querySelector(':scope > i');
+    if (!source) {
+        existing?.remove();
+        if (stockIcon) stockIcon.hidden = false;
+        return;
+    }
+    if (stockIcon) stockIcon.hidden = true;
+    if (existing?.querySelector('img')?.src?.endsWith(source)) return;
+    existing?.remove();
+    container.prepend(networkArt(source));
+}
+
+function decorateNetwork(root) {
+    const source = library()?.networkImage?.() || '';
+    const homeButton = root?.querySelector('.sb-phone-app[data-snowbunny-social="1"]');
+    applyNetworkArt(homeButton, source);
+    const identity = root?.querySelector('.sb-phone-social-identity-icon');
+    applyNetworkArt(identity, source);
+}
+
 async function decorate() {
     queued = false;
     if (decorating) return;
-    const root = socialRoot();
-    const store = phone();
-    if (!root || !store?.read) return;
+    const root = workspace();
+    if (!root) return;
     decorating = true;
     try {
+        decorateNetwork(root);
+        const social = socialRoot();
+        const store = phone();
+        if (!social || !store?.read) return;
         const state = await store.read();
         if (!socialRoot()) return;
         const profiles = (state?.profiles || []).filter(eventVisible);
         const indexes = profileIndexes(profiles);
-        decorateAuthors(root, indexes);
-        decorateProfiles(root, indexes);
+        decorateAuthors(social, indexes);
+        decorateProfiles(social, indexes);
     } catch (error) {
         console.warn('[SnowBunny] Could not render Phone profile artwork.', error);
     } finally {
@@ -161,5 +208,6 @@ export function initPhoneSocialArtworkUi() {
     document.addEventListener('snowbunny:phone-social-opened', queueDecorate);
     document.addEventListener('snowbunny:phone-changed', queueDecorate);
     document.addEventListener('snowbunny:phone-network-changed', queueDecorate);
+    document.addEventListener('snowbunny:phone-artwork-library-changed', queueDecorate);
     queueDecorate();
 }
