@@ -8,6 +8,7 @@ import {
     messageFingerprint,
     reconcileMessageIdentities,
 } from './message-identity.js';
+import { initPersonaSelector } from './persona-selector.js';
 import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
 import {
@@ -54,4 +55,5 @@ export function init() {
     initMobileShell();
     initSnowBunnyShell();
     initShellActions();
+    initPersonaSelector();
 }
