@@ -28,6 +28,8 @@ beforeAll(async () => {
     initPhoneStore();
     const { initPhoneArtwork } = await import('../public/scripts/extensions/snowbunny-mobile/phone-artwork.js');
     initPhoneArtwork();
+    const { initPhoneArtworkLibrary } = await import('../public/scripts/extensions/snowbunny-mobile/phone-artwork-library.js');
+    initPhoneArtworkLibrary();
     const { initPhoneSocialNetwork } = await import('../public/scripts/extensions/snowbunny-mobile/phone-social-network.js');
     initPhoneSocialNetwork();
     const { initPhoneSocialActions } = await import('../public/scripts/extensions/snowbunny-mobile/phone-social-actions.js');
@@ -203,6 +205,24 @@ describe('Phone artwork ownership', () => {
             name: 'Merchant',
             picture: '/user/files/local.webp',
         })).toBe('/user/files/local.webp');
+    });
+
+    test('stores reusable artwork folders on the Story when a Story owns the chat', () => {
+        globalState = { stories: [{ id: 'story-1', title: 'Story' }] };
+        chatState = { storyId: 'story-1' };
+        const folder = globalThis.SnowBunny.phoneArtworkLibrary.createFolder('Faces');
+        expect(folder.name).toBe('Faces');
+        expect(globalState.stories[0].phoneArtwork.library.folders).toHaveLength(1);
+        expect(globalState.stories[0].phoneArtwork.library.folders[0].name).toBe('Faces');
+        expect(chatState.phoneArtworkLibrary).toBeUndefined();
+    });
+
+    test('keeps reusable artwork local for a stand-alone chat', () => {
+        chatState = { storyId: '' };
+        const folder = globalThis.SnowBunny.phoneArtworkLibrary.createFolder('Standalone art');
+        expect(folder.name).toBe('Standalone art');
+        expect(chatState.phoneArtworkLibrary.folders).toHaveLength(1);
+        expect(globalState.stories).toEqual([]);
     });
 });
 
