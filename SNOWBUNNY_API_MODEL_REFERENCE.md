@@ -8,17 +8,17 @@ Use SillyTavern's mature API/provider/model machinery as the backend source of t
 
 SnowBunny should replace the experience around that machinery, not duplicate it.
 
-The old SnowBunny connection/model UI is still valuable as a UX reference: searchable model catalog, favorites/pins, provider identity, phone-sized bottom-sheet picker, and a simple connection library.
+The old SnowBunny API/model implementation can still teach us which **behaviors** were useful, such as searchable catalogs, favorites/pins, provider identity and a quick phone-sized model selector. Its actual API/model UI was itself clumsy, confusing and visually poor. Do **not** use the old SnowBunny API/model screens as the visual or structural design baseline.
 
-## SillyTavern UI is not the frontend baseline
+## Neither old UI is the frontend baseline
 
 Reuse of SillyTavern here means **backend/provider machinery only**. Its existing API and model-management interface is not a design target for SnowBunny.
 
-The current SillyTavern UI is too desktop-oriented, crowded and selector-heavy for the product Snow is building. Do not preserve its exposed drawer layout, dense rows, tiny control clusters, or desktop settings presentation merely because the underlying feature works.
+Likewise, the old SnowBunny API/model frontend is not a design target either. Snow explicitly considers that UI unsuccessful. Preserve useful capabilities, not its screen composition, card treatment, information hierarchy or settings flow.
 
-SnowBunny must provide its own polished mobile-first API/model experience using the same visual language as the rest of the frontend: deliberate cards/sheets, large touch targets, clear hierarchy, search, favorites, smooth navigation, relevant fields only, and no wall of implementation controls.
+The new API/model experience must be designed fresh in the same polished mobile-first visual language as the rest of the rebuilt frontend, informed primarily by the settled SnowBunny/Tavo interaction direction and the quality bar established for the new app.
 
-In short: **SillyTavern guts, SnowBunny face.**
+Use deliberate cards/sheets, large touch targets, clear hierarchy, search, favorites, smooth navigation, relevant fields only, and no wall of implementation controls.
 
 ## What current SillyTavern already gives us
 
@@ -44,12 +44,12 @@ Changing a SnowBunny connection or model must change the real SillyTavern provid
 
 The top-menu **API** destination is global management, not the quick writing selector.
 
-It should expose a polished SnowBunny connection library while wrapping SillyTavern's provider/secret/model infrastructure.
+It should expose a newly designed SnowBunny connection library while wrapping SillyTavern's provider/secret/model infrastructure.
 
 Normal flow:
 
 1. Open API.
-2. See saved connections/profiles as clean cards or rows.
+2. See saved connections/profiles in a clean mobile library.
 3. Add or edit a connection.
 4. Choose the provider/API family.
 5. Enter only the fields actually required by that provider.
@@ -86,7 +86,7 @@ Prompt/preset and Regex ownership stay with their dedicated SnowBunny systems.
 
 The right-drawer **Model** row is the fast current-chat writing selector. It is intentionally separate from the top API manager.
 
-Tap Model -> phone-sized bottom sheet.
+Tap Model -> polished phone-sized selector sheet.
 
 Normal presentation:
 
@@ -95,11 +95,11 @@ Normal presentation:
 - provider/connection identity visible but quiet;
 - search across available models;
 - browse the full catalog when needed;
-- tap a star/pin without leaving the picker;
+- pin/unpin without leaving the picker;
 - tap a model to select it;
 - no requirement to manually type a codename during normal use.
 
-The old SnowBunny `ModelPicker` is a good interaction reference: favorites-first mode, searchable full catalog, selected model retained even when unpinned, provider name, keyboard-aware bottom sheet, and pin/unpin directly in the list.
+These behaviors were useful in the old app, but the old `ModelPicker` layout itself is not to be copied. Rebuild the selector in the new frontend's visual language.
 
 Favorites are connection/provider-level user preferences, not chat-specific fiction state.
 
@@ -135,21 +135,21 @@ For very large catalogs such as NanoGPT/OpenRouter, search and favorites are ess
 
 ## API screen visual direction
 
-Do not reuse SillyTavern's current desktop drawer/select pile as the SnowBunny UI.
+Design this surface fresh. Do not reuse either SillyTavern's desktop API drawer or the old SnowBunny API/model screens as a visual template.
 
-Preserve its functionality underneath and rebuild the presentation for phone:
+The rebuilt version should follow the same polished frontend language as Characters, Codex, Agents, Scenario and the rest of SnowBunny:
 
 - large touch targets;
-- clean connection cards;
-- provider icon/name;
-- connection status;
+- clear, attractive connection cards/rows;
+- provider icon/name and useful status;
 - obvious Edit / Models routes;
 - simple add-connection flow;
-- model search/favorites;
+- searchable model library with favorites;
 - advanced provider-specific fields only when relevant;
-- no wall of unrelated selectors.
+- no wall of unrelated selectors;
+- smooth sheets/transitions consistent with the rest of the app.
 
-The old SnowBunny connection screen's simple `name -> base URL -> key -> test/refresh -> model collection` flow remains a useful reference for OpenAI-compatible profiles, but its backend is not the new canonical API implementation.
+For OpenAI-compatible connections, the useful behavioral idea remains a simple sequence of endpoint/base URL -> key -> test/connect -> discovered models. That does not imply copying the old screen's layout or styling.
 
 ## Secrets / keys
 
@@ -184,4 +184,5 @@ Do not:
 - lose favorites/search for large catalogs;
 - trust only what the selector displays; generation must use the same authoritative state;
 - reuse SillyTavern's current desktop API/model UI as SnowBunny's frontend;
-- preserve dense selector walls or tiny controls just because the backend already exposes them that way.
+- reuse the old SnowBunny API/model UI as SnowBunny's new frontend;
+- treat an old screen as a design baseline merely because some of its behaviors were useful.
