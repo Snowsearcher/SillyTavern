@@ -21,6 +21,10 @@ function phoneUi() {
     return globalThis.SnowBunny?.phoneUi ?? null;
 }
 
+function socialActions() {
+    return globalThis.SnowBunny?.phoneSocialActions ?? null;
+}
+
 function el(tag, className = '', text = '') {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -63,17 +67,20 @@ function installStyles() {
   #${WORKSPACE_ID} .sb-phone-social-identity small { margin-top: 3px; font-size: .68rem; line-height: 1.4; opacity: .58; }
   #${WORKSPACE_ID} .sb-phone-social-tabs {
     position: sticky; top: -13px; z-index: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px;
-    margin: 0 -2px 12px; padding: 7px 2px 8px;
+    margin: 0 -2px 8px; padding: 7px 2px 8px;
     background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 96%, transparent);
   }
   #${WORKSPACE_ID} .sb-phone-social-tabs button,
   #${WORKSPACE_ID} .sb-phone-social-actions button,
   #${WORKSPACE_ID} .sb-phone-social-back,
-  #${WORKSPACE_ID} .sb-phone-social-follow {
+  #${WORKSPACE_ID} .sb-phone-social-follow,
+  #${WORKSPACE_ID} .sb-phone-social-create,
+  #${WORKSPACE_ID} .sb-phone-social-compose button {
     min-height: 36px; border: 0; border-radius: 12px; background: transparent; color: inherit; font: inherit;
   }
   #${WORKSPACE_ID} .sb-phone-social-tabs button { padding: 7px 6px; font-size: .67rem; font-weight: 760; opacity: .6; }
   #${WORKSPACE_ID} .sb-phone-social-tabs button.active { background: color-mix(in srgb, currentColor 9%, transparent); opacity: 1; }
+  #${WORKSPACE_ID} .sb-phone-social-create { width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px; margin: 0 0 11px; padding: 8px 10px; background: color-mix(in srgb, var(--SmartThemeEmColor, #c7a8ff) 15%, transparent); font-size: .7rem; font-weight: 780; }
   #${WORKSPACE_ID} .sb-phone-social-section { margin: 12px 0 16px; }
   #${WORKSPACE_ID} .sb-phone-social-section-title { margin: 0 3px 7px; font-size: .69rem; font-weight: 800; opacity: .58; letter-spacing: .02em; }
   #${WORKSPACE_ID} .sb-phone-social-card {
@@ -96,7 +103,7 @@ function installStyles() {
   #${WORKSPACE_ID} .sb-phone-social-actions button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 7px; font-size: .62rem; opacity: .58; }
   #${WORKSPACE_ID} .sb-phone-social-actions button.active { background: color-mix(in srgb, currentColor 9%, transparent); opacity: 1; }
   #${WORKSPACE_ID} .sb-phone-social-replies { display: grid; gap: 6px; margin-top: 9px; padding-left: 10px; border-left: 2px solid color-mix(in srgb, currentColor 12%, transparent); }
-  #${WORKSPACE_ID} .sb-phone-social-reply { padding: 7px 8px; border-radius: 12px; background: color-mix(in srgb, currentColor 4%, transparent); }
+  #${WORKSPACE_ID} .sb-phone-social-reply { padding: 7px 8px; border-radius: 12px; background: color-mix(in srgb, currentColor 4%, transparent); cursor: pointer; }
   #${WORKSPACE_ID} .sb-phone-social-reply strong { display: block; margin-bottom: 3px; font-size: .65rem; }
   #${WORKSPACE_ID} .sb-phone-social-reply p { margin: 0; white-space: pre-wrap; font-size: .72rem; line-height: 1.38; }
   #${WORKSPACE_ID} .sb-phone-social-image-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
@@ -117,6 +124,13 @@ function installStyles() {
   #${WORKSPACE_ID} .sb-phone-social-profile-copy p { margin: 9px 0 0; font-size: .76rem; line-height: 1.42; }
   #${WORKSPACE_ID} .sb-phone-social-follow { flex: 0 0 auto; min-width: 76px; padding: 7px 10px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: .67rem; font-weight: 760; }
   #${WORKSPACE_ID} .sb-phone-social-follow.active { background: color-mix(in srgb, var(--SmartThemeEmColor, #c7a8ff) 18%, transparent); }
+  #${WORKSPACE_ID} .sb-phone-social-compose { display: grid; gap: 9px; padding: 13px; border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 54%, transparent); border-radius: 18px; background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 53%, transparent); }
+  #${WORKSPACE_ID} .sb-phone-social-compose input,
+  #${WORKSPACE_ID} .sb-phone-social-compose textarea { box-sizing: border-box; width: 100%; padding: 9px 10px; border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 58%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 60%, transparent); color: inherit; font: inherit; }
+  #${WORKSPACE_ID} .sb-phone-social-compose textarea { min-height: 130px; resize: vertical; line-height: 1.42; }
+  #${WORKSPACE_ID} .sb-phone-social-compose button { padding: 8px 11px; background: color-mix(in srgb, var(--SmartThemeEmColor, #c7a8ff) 17%, transparent); font-size: .7rem; font-weight: 780; }
+  #${WORKSPACE_ID} .sb-phone-social-compose small { font-size: .65rem; line-height: 1.4; opacity: .58; }
+  #${WORKSPACE_ID} .sb-phone-social-compose-error { padding: 8px 9px; border-radius: 10px; background: color-mix(in srgb, currentColor 7%, transparent); font-size: .67rem; line-height: 1.38; }
 }
 `;
     document.head.append(style);
@@ -195,6 +209,11 @@ function openProfile(actorKeyValue) {
 function openThread(postId) {
     if (!postId) return;
     socialView = { kind: 'thread', tab: socialView.tab, id: postId };
+    queueRefresh();
+}
+
+function openCompose(replyTo = '') {
+    socialView = { kind: 'compose', tab: socialView.tab, id: String(replyTo || '') };
     queueRefresh();
 }
 
@@ -313,6 +332,13 @@ function navigation(network) {
     return nav;
 }
 
+function createButton(network) {
+    const vocabulary = terms(network);
+    const create = button(`New ${vocabulary.post}`, 'fa-plus', 'sb-phone-social-create');
+    create.addEventListener('click', () => openCompose());
+    return create;
+}
+
 async function togglePost(kind, idValue) {
     const store = phone();
     if (!store || !idValue) return;
@@ -332,13 +358,18 @@ function actionRow(post, state, network) {
         event.stopPropagation();
         void togglePost('reaction', post.id);
     });
+    const reply = button(vocabulary.reply, 'fa-reply');
+    reply.addEventListener('click', event => {
+        event.stopPropagation();
+        openCompose(post.id);
+    });
     const keep = button(vocabulary.saved, 'fa-bookmark', saved ? 'active' : '');
     keep.setAttribute('aria-pressed', String(saved));
     keep.addEventListener('click', event => {
         event.stopPropagation();
         void togglePost('saved', post.id);
     });
-    host.append(react, keep);
+    host.append(react, reply, keep);
     return host;
 }
 
@@ -367,11 +398,14 @@ function streamCard(post, profiles, network, state, { interactive = true } = {})
     return interactive ? makeInteractive(card, post) : card;
 }
 
-function replyNode(reply, profiles, network) {
+function replyNode(reply, profiles) {
     const row = el('div', 'sb-phone-social-reply');
     row.append(el('strong', '', authorName(reply, profiles)));
     if (reply.text) row.append(el('p', '', reply.text));
-    row.addEventListener('click', () => openProfile(reply.authorActorKey));
+    row.addEventListener('click', event => {
+        event.stopPropagation();
+        openThread(reply.id);
+    });
     return row;
 }
 
@@ -389,7 +423,7 @@ function threadCard(post, replies, profiles, network, state, { interactive = tru
     if (replies.length) {
         const host = el('div', 'sb-phone-social-replies');
         const visible = allReplies ? replies : replies.slice(0, 4);
-        for (const reply of visible) host.append(replyNode(reply, profiles, network));
+        for (const reply of visible) host.append(replyNode(reply, profiles));
         if (!allReplies && replies.length > visible.length) host.append(el('div', 'sb-phone-social-meta', `+${replies.length - visible.length} more`));
         card.append(host);
     }
@@ -412,7 +446,7 @@ function communityCard(post, replies, profiles, network, state, options = {}) {
     if (replies.length) {
         const host = el('div', 'sb-phone-social-replies');
         const visible = options.allReplies ? replies : replies.slice(0, 3);
-        for (const reply of visible) host.append(replyNode(reply, profiles, network));
+        for (const reply of visible) host.append(replyNode(reply, profiles));
         if (!options.allReplies && replies.length > visible.length) host.append(el('div', 'sb-phone-social-meta', `+${replies.length - visible.length} more`));
         card.append(host);
     }
@@ -517,6 +551,7 @@ function feedPosts(posts, state) {
 }
 
 function renderFeed(body, posts, profiles, network, state) {
+    body.append(navigation(network), createButton(network));
     const filtered = feedPosts(posts, state);
     if (!filtered.length) {
         const vocabulary = terms(network);
@@ -565,6 +600,12 @@ function backButton(network) {
     return back;
 }
 
+function followCommand(network, active) {
+    if (active) return terms(network).following;
+    if (network.mode === 'forum' || network.mode === 'bulletin') return 'Watch';
+    return 'Follow';
+}
+
 async function toggleFollow(actorKeyValue) {
     if (!actorKeyValue) return;
     await phone()?.toggleFollow?.(actorKeyValue);
@@ -579,6 +620,7 @@ function renderProfile(body, state, posts, profiles, network) {
     }
     const actorKeyValue = phone()?.actorKey?.(profile.actor) || socialView.id;
     const following = state?.social?.followingActorKeys?.includes(actorKeyValue) === true;
+    const own = actorKeyValue === socialActions()?.playerActorKey?.();
     const vocabulary = terms(network);
     body.append(backButton(network));
     const hero = el('section', 'sb-phone-social-profile');
@@ -587,10 +629,13 @@ function renderProfile(body, state, posts, profiles, network) {
     copy.append(el('h3', '', profile.name || vocabulary.profile));
     if (showHandles(network) && profile.handle) copy.append(el('small', '', `@${profile.handle}`));
     if (profile.bio) copy.append(el('p', '', profile.bio));
-    const follow = button(following ? vocabulary.following : vocabulary.following, '', `sb-phone-social-follow${following ? ' active' : ''}`);
-    follow.setAttribute('aria-pressed', String(following));
-    follow.addEventListener('click', () => void toggleFollow(actorKeyValue));
-    top.append(copy, follow);
+    top.append(copy);
+    if (!own) {
+        const follow = button(followCommand(network, following), '', `sb-phone-social-follow${following ? ' active' : ''}`);
+        follow.setAttribute('aria-pressed', String(following));
+        follow.addEventListener('click', () => void toggleFollow(actorKeyValue));
+        top.append(follow);
+    }
     hero.append(top);
     body.append(hero);
 
@@ -614,6 +659,71 @@ function renderThreadDetail(body, state, posts, profiles, network) {
     body.append(cardFor(selected, replies.get(selected.id) || [], profiles, network, state, { interactive: false, allReplies: true }));
 }
 
+function composeField(kind, placeholder, maxLength) {
+    const node = el(kind === 'textarea' ? 'textarea' : 'input');
+    node.placeholder = placeholder;
+    node.maxLength = maxLength;
+    return node;
+}
+
+function renderCompose(body, posts, profiles, network) {
+    const vocabulary = terms(network);
+    const parent = socialView.id ? posts.find(post => post.id === socialView.id) || null : null;
+    body.append(backButton(network));
+    if (socialView.id && !parent) {
+        body.append(el('div', 'sb-phone-empty', 'That public item is no longer available on the current Story branch.'));
+        return;
+    }
+    if (parent) {
+        const preview = el('section', 'sb-phone-social-card');
+        preview.append(el('div', 'sb-phone-social-meta', `${vocabulary.reply} to ${authorName(parent, profiles)}`));
+        preview.append(el('p', 'sb-phone-social-text', parent.text || derivedTitle(parent, network)));
+        body.append(preview);
+    }
+
+    const form = el('form', 'sb-phone-social-compose');
+    const titleNeeded = !parent && ['forum', 'bulletin'].includes(network.mode);
+    const spaceUseful = !parent && ['forum', 'community', 'bulletin'].includes(network.mode);
+    const title = titleNeeded ? composeField('input', `${vocabulary.post} title`, 180) : null;
+    const space = spaceUseful ? composeField('input', vocabulary.space, 100) : null;
+    const textLabel = parent ? vocabulary.reply : network.mode === 'image' ? 'Caption' : vocabulary.post;
+    const text = composeField('textarea', textLabel, 6000);
+    if (title) form.append(title);
+    if (space) form.append(space);
+    form.append(text);
+    if (network.mode === 'image' && !parent) {
+        form.append(el('small', '', 'Image attachment fulfillment remains separate; this saves the public caption without inventing an image file.'));
+    }
+    const error = el('div', 'sb-phone-social-compose-error');
+    error.hidden = true;
+    const submit = button(parent ? vocabulary.reply : `Publish ${vocabulary.post}`, 'fa-paper-plane');
+    submit.type = 'submit';
+    form.append(error, submit);
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (submit.disabled) return;
+        submit.disabled = true;
+        error.hidden = true;
+        try {
+            const post = await socialActions()?.publish?.({
+                text: text.value,
+                title: title?.value || '',
+                space: space?.value || '',
+                replyTo: parent?.id || '',
+            });
+            if (!post) throw new Error('The public post was not saved.');
+            socialView = { kind: 'thread', tab: socialView.tab, id: parent?.id || post.id };
+            queueRefresh();
+        } catch (cause) {
+            error.textContent = String(cause?.message || cause);
+            error.hidden = false;
+            submit.disabled = false;
+        }
+    });
+    body.append(form);
+    requestAnimationFrame(() => (title || text).focus());
+}
+
 async function renderSocialSurface(root, network) {
     if (renderBusy || !root || !network || !isSocialSurface(root)) return;
     const body = root.querySelector('.sb-phone-body');
@@ -631,14 +741,10 @@ async function renderSocialSurface(root, network) {
         body.replaceChildren(networkIdentity(network));
         body.dataset.snowbunnySocialSignature = signature;
 
-        if (socialView.kind === 'feed') {
-            body.append(navigation(network));
-            renderFeed(body, posts, profiles, network, state);
-        } else if (socialView.kind === 'profile') {
-            renderProfile(body, state, posts, profiles, network);
-        } else if (socialView.kind === 'thread') {
-            renderThreadDetail(body, state, posts, profiles, network);
-        }
+        if (socialView.kind === 'feed') renderFeed(body, posts, profiles, network, state);
+        else if (socialView.kind === 'profile') renderProfile(body, state, posts, profiles, network);
+        else if (socialView.kind === 'thread') renderThreadDetail(body, state, posts, profiles, network);
+        else if (socialView.kind === 'compose') renderCompose(body, posts, profiles, network);
     } finally {
         renderBusy = false;
     }
