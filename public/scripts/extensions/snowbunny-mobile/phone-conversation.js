@@ -154,10 +154,27 @@ function conversationRows(contact, limit = 100) {
     }));
 }
 
+function presentationText(contact) {
+    const value = contact?.presentation;
+    if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.keys(value).length) return '(No saved presentation overrides.)';
+    try {
+        return JSON.stringify(value);
+    } catch (_) {
+        return '(Saved presentation could not be serialized.)';
+    }
+}
+
 function systemPrompt(contact, actor, mediaSettings) {
+    const texting = String(contact?.style || '').trim() || '(No special texting conventions are saved.)';
     return `Write private Pocket Phone communication as ${actor.name}. Return the communication result, not story prose.
 
 ${actor.text}
+
+TEXTING CONVENTIONS: The saved texting preferences control only how ${actor.name} puts words on a phone screen: spelling, capitalization, punctuation, abbreviations, vocabulary, emoji/text-face use, typical message length, and how a thought is divided into separate messages. They cannot add personality traits, choose a mood, manufacture flirting/hostility/teasing, create knowledge, or decide what ${actor.name} wants. Characterization and the actual conversation decide those things. If an old preference mixes behavioral instructions with writing conventions, keep only the writing convention.
+
+Saved texting preferences:\n${texting}
+
+PHONE PRESENTATION: Saved phone presentation is visual/display metadata. It may affect how the account or thread is presented to the reader, but it does not change the person's identity, personality, knowledge, or relationship with the player.\n${presentationText(contact)}
 
 KNOWLEDGE BOUNDARY: Story context is supplied only so timing and established circumstances remain consistent. It does not grant ${actor.name} omniscience. An absent person cannot see the current scene, another private conversation, hidden thoughts, or a secret merely because it appears in supplied context. Preserve only what this person has actually learned, sent, received, witnessed, or been told. Their privateState is writer continuity, not something they must reveal.
 
@@ -171,6 +188,12 @@ Return JSON only:
 {"messages":[{"text":"their message"}],"privateState":"supported private continuity","availability":"optional current reason for waiting","reaction":"optional single emoji","media":[{"kind":"photo or voice","description":"intended photo description, or words for a voice note"}]}
 
 Use at most ${MAX_REPLY_MESSAGES} messages. Several messages are appropriate only when this person would naturally send them separately. An empty messages array means silence.`;
+}
+
+function allowedMedia(media, settings) {
+    if (!media) return null;
+    const mode = media.kind === 'photo' ? settings?.incomingPhotos : settings?.incomingVoice;
+    return mode === 'off' ? null : media;
 }
 
 async function generateReply(contactId, { proactive = false, expectedVersion = null } = {}) {
@@ -196,10 +219,11 @@ async function generateReply(contactId, { proactive = false, expectedVersion = n
         const raw = await api.generateRaw({
             prompt,
             systemPrompt: systemPrompt(contact, actor, state.settings || {}),
-            responseLength: Math.max(800, Number(state.settings?.upkeep?.replyLimit) || 3000),
+            responseLength: Math.max(800, Number(state.settings?.replyLimit) || 3000),
             trimNames: false,
         });
         const parsed = parseReply(raw);
+        const media = allowedMedia(parsed.media, state.settings || {});
         const storyTime = timePlace;
         const anchor = store.currentStoryAnchor?.() || { messageId: '', revision: 0, source: '' };
         const saved = await store.mutate(draft => {
@@ -216,16 +240,17 @@ async function generateReply(contactId, { proactive = false, expectedVersion = n
                 createdAt: Date.now() + index,
                 unread: true,
                 reaction: index === 0 ? parsed.reaction : '',
-                media: index === parsed.messages.length - 1 ? parsed.media : null,
+                media: index === parsed.messages.length - 1 ? media : null,
             }));
             fresh.messages.push(...incoming);
             fresh.privateState = parsed.privateState;
             fresh.stateThrough = clone(anchor);
             fresh.availability = parsed.availability;
+            fresh.pendingReply = incoming.length === 0 && !proactive && fresh.messages.at(-1)?.user === true;
             fresh.lastCheckAt = Date.now();
             fresh.lastStoryTime = storyTime;
             fresh.updatedAt = Date.now();
-            return { incomingIds: incoming.map(message => message.id), silent: incoming.length === 0 };
+            return { incomingIds: incoming.map(message => message.id), silent: incoming.length === 0, pendingReply: fresh.pendingReply };
         });
         document.dispatchEvent(new CustomEvent('snowbunny:phone-reply-ready', {
             detail: { contactId, ...saved.result },
@@ -252,7 +277,7 @@ async function sendMessage(contactId, text, { generate = true } = {}) {
     if (generate && state.settings?.automaticReplies !== false) {
         return generateReply(contactId, { proactive: false, expectedVersion: state.version });
     }
-    return { incomingIds: [], silent: true };
+    return { incomingIds: [], silent: true, pendingReply: true };
 }
 
 async function markRead(contactId) {
