@@ -1,3 +1,4 @@
+import { initAgentStore } from './agent-store.js';
 import { initAgentsUi } from './agents-ui.js';
 import { initChatStatistics } from './chat-statistics.js';
 import { initCodex } from './codex.js';
@@ -5,6 +6,9 @@ import { initComposerLayout } from './composer-layout.js';
 import { initContextView } from './context-view.js';
 import { initCreateCodexBridge } from './create-codex-bridge.js';
 import { initCreateMenu } from './create-menu.js';
+import { initCustomAgentEngine } from './custom-agent-engine.js';
+import { initCustomAgentResultsUi } from './custom-agent-results-ui.js';
+import { initCustomAgentsUi } from './custom-agents-ui.js';
 import { initCyoaNative } from './cyoa-native.js';
 import { init as initMobileShell } from './index.js';
 import { initLorebookStore } from './lorebook-store.js';
@@ -85,11 +89,13 @@ export function init() {
     initMessageIdentity();
     initTrackerStore();
     initMemoryStore();
+    initAgentStore();
     initMemoryIntegrity();
     initStoryOwnership();
     initStoryTracker();
     initMemoryMaker();
     initMemoryRecall();
+    initCustomAgentEngine();
     initRegexCompatibilityGuard();
     initRegexNative();
     initContextView();
@@ -114,7 +120,9 @@ export function init() {
     initMemoryUi();
     initMemoryRecovery();
     initTrackerUi();
+    initCustomAgentResultsUi();
     initAgentsUi();
+    initCustomAgentsUi();
     initCreateMenu();
     initCreateCodexBridge();
     initShellTransitions();
