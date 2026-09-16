@@ -10,6 +10,16 @@ SnowBunny should replace the experience around that machinery, not duplicate it.
 
 The old SnowBunny connection/model UI is still valuable as a UX reference: searchable model catalog, favorites/pins, provider identity, phone-sized bottom-sheet picker, and a simple connection library.
 
+## SillyTavern UI is not the frontend baseline
+
+Reuse of SillyTavern here means **backend/provider machinery only**. Its existing API and model-management interface is not a design target for SnowBunny.
+
+The current SillyTavern UI is too desktop-oriented, crowded and selector-heavy for the product Snow is building. Do not preserve its exposed drawer layout, dense rows, tiny control clusters, or desktop settings presentation merely because the underlying feature works.
+
+SnowBunny must provide its own polished mobile-first API/model experience using the same visual language as the rest of the frontend: deliberate cards/sheets, large touch targets, clear hierarchy, search, favorites, smooth navigation, relevant fields only, and no wall of implementation controls.
+
+In short: **SillyTavern guts, SnowBunny face.**
+
 ## What current SillyTavern already gives us
 
 Current SillyTavern supports a broad provider matrix under its API/Chat Completion machinery, including OpenAI, custom OpenAI-compatible endpoints, Claude, OpenRouter, Google, Mistral, Cohere, Perplexity, Groq, Chutes, NanoGPT, DeepSeek, xAI, Fireworks, Z.AI, SiliconFlow, MiniMax and others, plus its non-Chat-Completion API families.
@@ -172,4 +182,6 @@ Do not:
 - move model selection to Story ownership;
 - let Connection Profiles silently switch Preset or Regex when the user only selected a model/connection;
 - lose favorites/search for large catalogs;
-- trust only what the selector displays; generation must use the same authoritative state.
+- trust only what the selector displays; generation must use the same authoritative state;
+- reuse SillyTavern's current desktop API/model UI as SnowBunny's frontend;
+- preserve dense selector walls or tiny controls just because the backend already exposes them that way.
