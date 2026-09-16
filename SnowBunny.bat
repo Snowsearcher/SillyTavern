@@ -8,7 +8,7 @@ set NODE_ENV=production
 echo.
 echo ==============================================
 echo               SnowBunny
- echo ==============================================
+echo ==============================================
 echo Updating the SnowBunny branch...
 
 git --version >nul 2>&1
