@@ -177,6 +177,7 @@ function normalizeContact(value, index = 0) {
         privateState: String(value.privateState || ''),
         stateThrough: normalizeAnchor(value.stateThrough),
         availability: String(value.availability || ''),
+        pendingReply: value.pendingReply === true,
         style: String(value.style || ''),
         presentation: plainObject(value.presentation) ? clone(value.presentation) : {},
         messages: safeArray(value.messages).map(normalizeMessage).filter(Boolean),
@@ -251,6 +252,7 @@ function defaultSettings() {
         incomingPhotos: 'off',
         incomingVoice: 'off',
         historyCount: 100,
+        replyLimit: 3000,
         upkeep: {
             enabled: false,
             frequency: 5,
@@ -272,6 +274,7 @@ function normalizeSettings(value) {
         incomingPhotos: ['off', 'ask', 'on'].includes(source.incomingPhotos) ? source.incomingPhotos : 'off',
         incomingVoice: ['off', 'ask', 'on'].includes(source.incomingVoice) ? source.incomingVoice : 'off',
         historyCount: Math.max(10, Math.min(1000, Number(source.historyCount) || defaults.historyCount)),
+        replyLimit: Math.max(800, Math.min(12000, Number(source.replyLimit) || defaults.replyLimit)),
         upkeep: {
             enabled: upkeep.enabled === true,
             frequency: Math.max(1, Math.min(50, Number(upkeep.frequency) || defaults.upkeep.frequency)),
@@ -444,6 +447,7 @@ async function appendMessage(contactId, input) {
         const message = normalizeMessage({ ...input, through: input?.through || currentStoryAnchor() }, contact.messages.length);
         if (!message) throw new Error('A phone message needs text or delivered media.');
         contact.messages.push(message);
+        contact.pendingReply = message.user === true;
         contact.updatedAt = Date.now();
         return clone(message);
     })).result;
