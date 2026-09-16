@@ -4,34 +4,58 @@ This file records visual/interaction decisions taken from screenshots and UI ref
 
 ## Right drawer / Current Chat panel
 
-### Settled top area
+### Settled top area: Members + Persona
 
-- The top of the right drawer is **not** Model.
-- Put the current **Persona selector** at the top-right area, using SnowBunny's own proper visual Persona selector rather than Tavo's plain text `User` row.
-- Place a **+** button beside the Persona selector. This opens the Character/cast selector and adds Characters to the current chat.
-- The Character selector should preserve SnowBunny's intended visual picker: artwork/cards, search/filtering/favorites where useful, and multi-select/add-to-chat behavior.
-- **Do not display the active cast as portrait chips, avatars, a Characters row, or another cast summary inside the right drawer.** The right drawer stays uncluttered. Tavo has a separate interaction/presentation for current cast; wait for that reference before designing where active Characters are shown/managed after selection.
-- Global Character/Persona management remains in the left Library bottom quick-action row. The right-drawer controls are for choosing what the current chat uses.
+Use the supplied Tavo member-management screenshots as the reference for current-cast handling. Do **not** duplicate the cast as portrait chips in the chat UI or as another generic `Characters` settings row.
+
+At the top of the right drawer:
+
+1. Show a compact **Members (N)** section.
+2. Put **Add** on the right side of that section header.
+3. Each selected member appears as one clean row with portrait and name.
+4. Each member row may expose a small per-member participation/reply control and a remove `×` action. The exact semantics of Tavo's speech-bubble / crossed-bubble control still need to be verified before copying that behavior; do not invent its meaning.
+5. Immediately below Members, show the current **Persona** as its own compact selector row.
+
+This is the only right-drawer cast summary. Do not add a second Characters row, cast chips, header avatars, or other redundant member list.
+
+### Add / Select Characters interaction
+
+Tapping **Add** opens a Tavo-style character-selection bottom sheet:
+
+- title such as `Select Characters`;
+- Cancel and Apply/OK actions;
+- current chat members preselected;
+- large portrait + name rows;
+- clear circular selected/unselected state;
+- multi-select;
+- search/filtering/favorites may be added in SnowBunny's richer version without slowing the basic interaction;
+- applying returns directly to the Current Chat drawer.
+
+SnowBunny's selector can be prettier and more capable than Tavo's, but the interaction should stay this quick.
+
+Global Character management remains in the left Library bottom quick-action row. This Members section is only for the cast attached to the current chat.
 
 ### Narrator
 
-Narrator is **not** a separate right-drawer system/settings row.
+The original SnowBunny Narrator is **not** merely an ordinary Character card. In the handoff source it is a dedicated global Narrator resource stored under `settings/narrator`, with its own displayed name, portrait, `Narrator instructions`, and `Voice and style` fields. Prompt assembly used it as the writer identity when no normal Character card was selected.
 
-The original SnowBunny Narrator is also **not merely an ordinary Character card**. In the handoff source it is a dedicated global Narrator resource stored under `settings/narrator`, with its own displayed name, portrait, `Narrator instructions`, and `Voice and style` fields. Prompt assembly uses it as the writer identity specifically when the chat has no selected Character cards.
+The Tavo reference adds an important UX clue: Narrator can be shown and selected as a visible **member** alongside ordinary characters.
 
-For the SillyTavern fork, preserve that useful behavior while adapting it to ST's Character-oriented chat model:
+Recommended fork translation:
 
-- Narrator should appear to the user as a **built-in / stock Character option** for chats whose actual cast lives in Lorebook/Codex Character entries.
-- Keep Narrator's dedicated semantics and editor. Do **not** pad it with normal Character fields such as age, appearance, sexuality, etc.
-- Preserve the useful authored fields from SnowBunny: displayed name, portrait, Narrator instructions, and Voice and style.
-- Treat Narrator as a special built-in fallback/system Character in the adapter layer, rather than flattening it into a generic user-created Character card.
-- Faithful fallback behavior is desirable: when a chat has no explicit Character card selected because its cast is supplied through Lorebook/Codex entries, Narrator can serve as the assistant/writer identity.
-- If Narrator is exposed in Character selection/library UI, mark it clearly as built-in and keep it editable but protected from accidental deletion. Exact library presentation can be refined later.
+- Keep Narrator as a **protected built-in special identity**, not a fake normal person card.
+- Preserve its dedicated authored fields: displayed name, portrait, Narrator instructions, and Voice and style.
+- Expose Narrator through the same **Add / Select Characters** sheet so it behaves naturally in the Members UI.
+- Allow Narrator to be an explicit current-chat member. Do not make hidden fallback behavior the only way to use it.
+- Narrator may coexist with other selected members when a chat needs that arrangement; this is a deliberate adaptation beyond the old SnowBunny fallback-only prompt path.
+- Keep Narrator editable but protected from accidental deletion.
+- Do not pad Narrator with irrelevant Character fields such as Age, Appearance, Sexuality, etc.
 - AI serialization should identify it as Narrator rather than pretending it is a normal person card. Exact wrapper syntax remains part of the later wrapper-format decision.
+- Whether Narrator is automatically added to brand-new chats by default is still open; do not assume that behavior yet.
 
 ### Settled right-drawer order
 
-After the Persona selector + `+` Add Character top area, the main rows are:
+After the Members section and Persona row, the main rows are:
 
 1. **Model**
 2. **Preset**
@@ -94,7 +118,7 @@ A **stand-alone chat** has no shared Story memory pool. Its accepted MemoryMaker
 Everything else is **chat-dependent**. It is not inherited from the Story, and the Story does not provide defaults for it:
 
 - Persona
-- Added Characters / cast
+- Members / added Characters
 - Model
 - Preset
 - Scenario
@@ -149,7 +173,7 @@ The important pattern is:
 Use this Tavo-style quick-sheet interaction for things whose normal job is primarily **selecting or assigning something to the current chat**, for example:
 
 - Persona
-- Character/cast addition
+- Members / Character addition
 - Model
 - Preset
 - assigned Lorebooks
@@ -163,7 +187,7 @@ Do **not** mechanically force every complex system into this pattern. Scenario, 
 
 - Favor large rows/cards over tiny controls.
 - Use clear spacing and section separators rather than dense ST-style control piles.
-- Do not add current-cast chips/avatars to the right drawer merely because the cast needs to be visible somewhere else.
+- Show current cast only in the compact Members section; do not duplicate it elsewhere in the drawer or main chat UI.
 - Bottom sheets should feel deliberate and native on mobile: rounded top corners, strong hierarchy, obvious selected state, smooth slide animation and dimmed background context.
 - Selection should be fast enough that changing a Lorebook, Regex resource, Persona, Model, Preset or similar current-chat resource feels like a couple of taps, not configuration work.
 - SnowBunny can make the selectors visually richer than Tavo, especially for Characters, Personas and image-bearing resources, while preserving Tavo's speed and simplicity.
