@@ -1,6 +1,7 @@
 import { initChatStatistics } from './chat-statistics.js';
 import { initComposerLayout } from './composer-layout.js';
 import { initContextView } from './context-view.js';
+import { initCyoaNative } from './cyoa-native.js';
 import { init as initMobileShell } from './index.js';
 import {
     currentMessageIdentity,
@@ -64,6 +65,7 @@ export function init() {
     initModelSelector();
     initPersonaSelector();
     initScenario();
+    initCyoaNative();
     initChatStatistics();
     initShellTransitions();
 }
