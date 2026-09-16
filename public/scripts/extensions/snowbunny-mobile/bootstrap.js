@@ -3,6 +3,7 @@ import { initAgentsUi } from './agents-ui.js';
 import { initChatStatistics } from './chat-statistics.js';
 import { initCodex } from './codex.js';
 import { initComposerLayout } from './composer-layout.js';
+import { initContextAudit } from './context-audit.js';
 import { initContextView } from './context-view.js';
 import { initCreateCodexBridge } from './create-codex-bridge.js';
 import { initCreateMenu } from './create-menu.js';
@@ -99,6 +100,7 @@ export function init() {
     initCustomAgentEngine();
     initRegexCompatibilityGuard();
     initRegexNative();
+    initContextAudit();
     initContextView();
     initComposerLayout();
     initMobileShell();
