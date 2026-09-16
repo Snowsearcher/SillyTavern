@@ -192,7 +192,7 @@ describe('Phone artwork ownership', () => {
             .toBe('/user/files/story-merchant.webp');
     });
 
-    test('keeps a local explicit profile picture ahead of the Story fallback', () => {
+    test('keeps Story-shared public artwork consistent across branches even if one chat has stale presentation data', () => {
         globalState = {
             stories: [{
                 id: 'story-1',
@@ -203,8 +203,24 @@ describe('Phone artwork ownership', () => {
         expect(globalThis.SnowBunny.phoneArtwork.profilePicture({
             id: 'merchant',
             name: 'Merchant',
-            picture: '/user/files/local.webp',
-        })).toBe('/user/files/local.webp');
+            picture: '/user/files/old-local.webp',
+        })).toBe('/user/files/story.webp');
+    });
+
+    test('keeps the player public profile picture chat-local instead of inheriting Story NPC art', () => {
+        globalState = {
+            stories: [{
+                id: 'story-1',
+                phoneArtwork: { publicProfilePictures: { you: '/user/files/wrong-story-player.webp' } },
+            }],
+        };
+        chatState = { storyId: 'story-1' };
+        expect(globalThis.SnowBunny.phoneArtwork.profilePicture({
+            id: 'you',
+            actor: { kind: 'custom', key: 'player-public' },
+            name: 'Player',
+            picture: '/user/files/player-local.webp',
+        })).toBe('/user/files/player-local.webp');
     });
 
     test('stores reusable artwork folders on the Story when a Story owns the chat', () => {
