@@ -15,11 +15,9 @@ Implemented:
 - Copy, Edit, Use as Draft, Delete, latest-safe Retry, Hide/Show, Collapse/Expand, View Context and Replies where applicable;
 - extension-added message actions remain reachable through `More`;
 - standalone Retry and Continue beneath the latest assistant reply;
-- the real ST `#send_textarea` remains canonical;
-- attachment `+` uses ST's real picker;
-- composer extension actions remain compatible;
+- real ST `#send_textarea`, attachment picker and extension composer controls remain canonical;
 - observer reconciliation is idempotent;
-- the leaked stock message controls and magic-wand/text collision found in the first visual pass are fixed.
+- leaked stock message controls and the magic-wand/text collision found in the first visual pass are fixed.
 
 ## SnowBunny navigation shell
 
@@ -40,26 +38,11 @@ Response is now a native SnowBunny mobile surface over ST's canonical generation
 
 ## AI Response Configuration
 
-`response-config.js` provides the native top `Response` / Cog surface without creating a second generation-settings stack.
+`response-config.js` provides the native top Response/Cog surface without creating a second generation-settings stack.
 
 It edits the real ST controls and therefore uses ST's existing persistence and request path.
 
-Live phone-first controls include:
-
-- response length;
-- context size;
-- Temperature;
-- Top P;
-- Top K;
-- Min P;
-- frequency/presence penalties where supported;
-- repetition penalty where supported;
-- reasoning effort;
-- verbosity;
-- reasoning/thought return toggle;
-- streaming where the current backend exposes it.
-
-Provider-specific capability that is not mapped into the compact SnowBunny screen remains reachable through a small Advanced route to the canonical ST controls instead of being silently removed.
+Phone-first controls include response/context size, Temperature, Top P/Top K/Min P, applicable penalties, reasoning effort, verbosity, reasoning return and streaming. Provider-specific controls not mapped into the compact screen remain reachable through Advanced rather than being silently removed.
 
 ## Recent Chats
 
@@ -87,28 +70,119 @@ See `SNOWBUNNY_MEMBERS_IMPLEMENTATION_REFERENCE.md`.
 
 ## Protected Narrator
 
-`narrator.js` implements the first native Narrator adapter.
+`narrator.js` implements the protected special Narrator identity.
 
-- protected Narrator option in Members;
-- per-chat Narrator membership independent of ST `group.members`;
-- Narrator may coexist with ordinary Characters;
-- dedicated global editor for displayed name, portrait, Narrator instructions, Voice/style and Reset;
+- Narrator option in Members;
+- per-chat membership independent of ST `group.members`;
+- may coexist with ordinary Characters;
+- dedicated global editor for displayed name, portrait, instructions, Voice/style and Reset;
 - authored Narrator data lives in an authenticated SnowBunny user file;
-- selected Narrator routes to Story Writer with a native `<narrator>` wrapper and no World Info scan.
+- selected Narrator routes to Story Writer through a native `<narrator>` wrapper without World Info scanning.
 
 Still missing: independent Narrator-speaker dispatch, Narrator-only new-chat fallback and separately labelled Narrator generated messages.
 
 See `SNOWBUNNY_NARRATOR_IMPLEMENTATION_REFERENCE.md`.
 
-## Persona / Model / Preset / Scenario
+## Native Character authoring and library
 
-Persona:
+`character-authoring.js` and `character-library.js` now provide the first native SnowBunny Character authoring path without creating duplicate Character records.
+
+Canonical ownership:
+
+- the real ST Character card remains authoritative;
+- richer SnowBunny authoring lives under `data.extensions.snowbunny` on that same card;
+- every adopted/saved Character can receive a stable SnowBunny `entityId`;
+- existing ST description/personality/example-dialogue/First Message are adopted rather than discarded;
+- other Character extensions are preserved.
+
+Author document:
+
+- Structured / Freeform mode;
+- main freeform content;
+- ordered built-in fields;
+- custom fields;
+- Voice Lines retain a dialogue-example role;
+- First Message retains a startup-only role.
+
+Compatibility projection writes the canonical document back to ST description/personality/example-dialogue/First Message fields so existing ST/Fabled presets and extensions still receive familiar sources.
+
+Global Character library:
+
+- Visual / Compact;
+- artwork-forward cards;
+- search by name/category/aliases/tags;
+- favorites;
+- tag and linked-Lorebook filtering;
+- category grouping/collapse;
+- name/recent/oldest sorting;
+- protected Narrator discovery card;
+- Create uses ST's real Character creation control.
+
+Character editor:
+
+- Details / Writing / Preview;
+- category, aliases, tags, creator/version/source/notes;
+- linked Lorebooks;
+- Structured / Freeform authoring without destructive conversion;
+- custom field add/remove/reorder/clear;
+- empty fields hidden in Preview.
+
+Still using ST's canonical card path for artwork replacement and safe card/chat-owner rename. Full SnowBunny import/export/delete/replace/rename UI has not been ported yet.
+
+See `SNOWBUNNY_CHARACTER_PERSONA_IMPLEMENTATION_REFERENCE.md`.
+
+## Character <-> Codex stable shared identity
+
+This seam is now implemented by `character-codex-links.js`, the Lorebook store/retrieval/index adapters and `codex-linked-character-ui.js`.
+
+- linked Codex Character entries store stable `entityId` + real Character avatar linkage, not a second prose copy;
+- linked entry content is materialized from the live Character author document for semantic indexing and Lore retrieval;
+- Character edits refresh semantic content even when the Lorebook JSON itself did not need to change;
+- active Character Member + linked retrieved Codex Character is deduplicated by stable `entityId` before token fitting;
+- display-name equality alone never causes deduplication;
+- retrieval widens the candidate window before filtering a duplicate linked Character so another useful Lore entry is not crowded out;
+- Lore View Context records linked Character entries suppressed by this rule;
+- linked Codex Character cards are labelled `Shared Character` and route back to the Character editor.
+
+Independent Character-type Codex entries remain ordinary independent Lore entries.
+
+## Native Persona authoring and library
+
+`persona-authoring.js` and `persona-library.js` provide the native SnowBunny Persona library/editor over ST's real Persona records.
+
+- real ST Persona/avatar remains authoritative;
+- SnowBunny authored document lives inside the existing Persona descriptor;
+- ST Persona placement/depth/role/Lorebook/connection metadata is preserved;
+- Structured / Freeform canonical authoring with ordered/custom fields;
+- no Character-only First Message field;
+- compatibility projection updates ST Persona description;
+- editing the active Persona refreshes its in-memory Persona context;
+- SnowBunny favorites are separate from ST's one default Persona;
+- real default-Persona state remains editable.
+
+Library/editor:
+
+- Visual / Compact portrait cards;
+- search by name/title/category/aliases/tags;
+- favorites/default-first ordering;
+- Details / Writing / Preview;
+- title/category/aliases/tags;
+- Structured / Freeform writing and custom fields.
+
+Persona create/import/avatar replacement/delete and advanced placement/connection management currently remain available through ST's canonical Persona management rather than being reimplemented unsafely.
+
+See `SNOWBUNNY_CHARACTER_PERSONA_IMPLEMENTATION_REFERENCE.md`.
+
+## Persona current-chat selector
+
+The right-drawer Persona selector remains chat-specific and separate from the global Persona library.
 
 - searchable portrait/name selector over real ST Persona records;
-- default Persona favorite;
 - current-chat Persona lock/reapply;
 - real per-chat `No Persona` suppression without persisting global ST Persona position as NONE;
 - Persona context restores correctly when leaving a No Persona chat.
+
+## Model / Preset / Scenario
 
 Model:
 
@@ -122,18 +196,16 @@ Preset:
 
 - current-chat searchable quick selector over ST's real preset machinery;
 - per-chat preset reference/reapply;
-- `preset-editor.js` now provides the native phone-first full editor for Chat Completion presets;
+- `preset-editor.js` provides the native phone-first full editor for Chat Completion presets;
 - actual ST prompt objects + global prompt order remain canonical;
-- exact imported order/text/unknown fields are preserved unless edited;
-- touch reorder and enable/disable;
-- add/edit/delete user prompt modules;
-- dynamic source markers remain source rows rather than fake editable prose;
-- Advanced exposes injection position/depth/order, generation triggers and forbid-overrides;
-- Utility Prompts include Impersonation, Lore format, Scenario format, Personality format, Group nudge, New Chat, New Group Chat, New Example Chat, Continue nudge and Replace Empty Message;
-- ST's own reset actions are reused for defaults;
-- Import / Export / Save as / Rename / Delete delegate to established ST preset management.
+- exact imported order/text/unknown fields preserved unless edited;
+- touch reorder, enable/disable and add/edit/delete user modules;
+- dynamic source markers remain source rows;
+- Advanced exposes injection position/depth/order, triggers and forbid-overrides;
+- Utility Prompts include Impersonation, Lore/Scenario/Personality formats, Group nudge, New Chat, New Group Chat, New Example Chat, Continue nudge and Replace Empty Message;
+- ST reset/import/export/save-as/rename/delete semantics are reused.
 
-Non-Chat-Completion backend preset editors still fall back to their existing ST controls until their schemas are mapped safely.
+Non-Chat-Completion preset families still fall back to their established ST editors until mapped safely.
 
 Scenario:
 
@@ -162,212 +234,137 @@ See `SNOWBUNNY_PRESET_IMPLEMENTATION_REFERENCE.md`.
 
 ## Stories, Story Settings and stand-alone chats
 
-`stories-library.js` implements the visual Stories workspace and Stand-alone Chats browser.
+`stories-library.js` implements visual Stories and Stand-alone Chats browsing over real ST chats.
 
-- top Book and left Stories routes;
-- Visual/Compact browsing and search;
-- create/rename Story;
-- Story interior is a chat browser;
-- real ST Character/group chat discovery;
-- stable owner + chat-id refs;
-- current chat Story id plus global Story chat index.
-
-`story-settings.js` manages only the settled shared layer:
-
-- Story Lorebook assignment;
-- accepted Story Memories;
-- Story chat membership.
-
-It does not make Persona, Members, Model, Preset, Scenario, Regex, Agents or CYOA Story-owned.
+`story-settings.js` manages only the settled shared layer: Story Lorebooks, accepted Story Memories and Story chat membership. Persona, Members, Model, Preset, Scenario, Regex, Agents and CYOA remain chat-specific.
 
 `story-ownership.js` implements continuity-safe ownership transitions:
 
-- Story -> stand-alone snapshots all accepted Story Memories into a new local Memory file with new local ids + lineage metadata;
-- pending Story proposals are not treated as accepted local history;
-- effective Story + chat Lorebook union becomes chat-specific bindings when leaving;
-- stand-alone -> Story leaves destination Story Memories authoritative and stages local accepted Memories as review proposals instead of silently injecting them;
-- exact duplicates are skipped;
-- a local Memory forked from the same destination Story can become an edit-review proposal against its original Story Memory;
-- Story A -> Story B is fork-to-stand-alone then join/review;
-- other Story chats must be opened before detaching so SnowBunny can safely write their local continuity rather than editing only the Story index.
-
-`story-create-safety.js` disables the old Story-create checkbox that could bypass continuity review. Create the Story first, then add the chat through the safe ownership path.
+- Story -> stand-alone forks accepted Story Memories into new local ids with lineage and converts effective Story Lorebooks to chat bindings;
+- pending proposals do not become accepted history;
+- stand-alone -> Story leaves destination Story Memory authoritative and stages local accepted Memories for review;
+- duplicates are skipped;
+- related lineage can become edit-review rather than duplicate creation;
+- Story A -> Story B is fork then join/review.
 
 See `SNOWBUNNY_STORY_OWNERSHIP_IMPLEMENTATION_REFERENCE.md`.
 
 ## Native Lorebooks / Codex
 
-SnowBunny Codex is its own data system rather than a prettier ST World Info screen.
+SnowBunny Codex is its own authored Lore system, not a prettier ST World Info screen.
 
-`lorebook-store.js`:
+`lorebook-store.js` keeps canonical Lorebook JSON in authenticated ST user files with stable ids, typed entries, aliases, tags, activation, custom fields and Story/chat bindings.
 
-- full canonical Lorebook JSON in authenticated ST user files;
-- lightweight global index only;
-- stable Lorebook/entry/section ids;
-- typed entries, aliases, tags, Enabled, Always active, Description and ordered custom fields;
-- chat-specific and Story-owned bindings;
-- effective Story + chat union.
-
-`codex.js` wires the same data into left global Lorebooks, right chat assignment and top Codex.
-
-UI includes Visual/Compact views, create/edit/delete books and entries, effective-book selector, search, type groups, aliases/tags/toggles/custom fields, and locked Story-owned assignments.
-
-See `SNOWBUNNY_CODEX_IMPLEMENTATION_REFERENCE.md`.
+`codex.js` supplies global Lorebooks, right chat assignment and top Codex with Visual/Compact browsing, search, type groups, create/edit and locked Story-owned assignments.
 
 ST World Info remains a compatibility import/export target, not the native Codex backend.
+
+See `SNOWBUNNY_CODEX_IMPLEMENTATION_REFERENCE.md`.
 
 ## Semantic + exact Lore retrieval
 
 `lore-semantic-index.js` + `lore-retrieval.js` use ST's vector backend.
 
-- stable vector collection per Lorebook/version;
+- stable vector collections;
 - passage chunking/overlap and stable hashes;
-- incremental vector list/insert/delete sync;
-- semantic query with configured embedding source, default `transformers`;
-- exact identity/tag rescue;
-- reciprocal-rank fusion;
+- incremental list/insert/delete sync;
+- semantic query with configurable source, default `transformers`;
+- exact identity/tag rescue + reciprocal-rank fusion;
 - Always active bypass;
 - match/budget limits;
-- typed native wrappers;
-- generation-time retrieval on awaited `GENERATION_AFTER_COMMANDS`, including newest user draft;
-- exact-only fallback if vectors fail;
-- detailed Lore View Context receipt.
+- typed wrappers;
+- awaited generation-time retrieval including newest draft;
+- exact-only fallback when vectors fail;
+- detailed Lore View Context receipt;
+- linked Character materialization and stable-identity dedup as described above.
 
-Still missing: Character-card <-> Codex Character shared-document identity/dedup and advanced embedding-source UI.
+Still missing: final advanced embedding-source UI.
 
 ## Story Memory + Memory Maker
 
-`memory-store.js`, `memory-maker.js`, `memory-integrity.js`, `memory-ui.js` and `memory-recovery.js` implement native accepted Memories, reviewed proposals and reviewed recovery.
+Native Memory is implemented through `memory-store.js`, `memory-maker.js`, `memory-integrity.js`, `memory-ui.js`, `memory-recovery.js` and Recall.
 
-Ownership/storage:
-
-- Story chats share one Story Memory file;
-- stand-alone chats use a chat-local Memory file;
-- substantial state lives in authenticated ST user files;
-- accepted Memories, pending proposals, revisions, settings and review state are versioned together;
-- manual add/edit/delete is supported;
-- Memory records can carry lineage metadata for continuity forks.
-
-Memory Maker:
-
-- uses the current ST model through `generateRaw`;
-- automatic cadence defaults to five completed assistant replies;
-- manual review available;
-- strict JSON create/edit/merge/delete proposals, max six;
+- Story chats share Story Memory; stand-alone chats use local Memory;
+- substantial state lives in authenticated user files;
+- accepted Memories and reviewed proposals are versioned;
+- automatic/manual Memory Maker with strict JSON proposals;
 - never auto-saves proposals;
-- source evidence uses SnowBunny message ids/revisions/fingerprints;
-- acceptance fails if Memory state or source evidence changed;
-- strict evidence boundary: visible story + accepted Memories + pending proposals + explicit correction, with no tracker/Scenario/Lore/support-state/unchosen-choice leak.
+- Yes / No / Later and note-driven revision;
+- source evidence uses message ids/revisions/fingerprints;
+- edits/swipes/hides/deletes can mark accepted Memory `Needs review`;
+- source-changed Memories are excluded from Recall;
+- recovery creates review proposals rather than silently rewriting history.
 
-Changed-source handling:
-
-- accepted Memory source validation scans the full active source chat;
-- edited/swiped/hidden/deleted source evidence marks accepted Memory `Needs review` at its Story/chat owner level;
-- other chats in the same Story share that invalid set without falsely treating cross-chat source as stale merely because another Story chat is open;
-- source-changed Memories are visibly marked and excluded from Recall;
-- Memory Maker receives `sourceChanged: true` and is told to verify/correct/reconnect rather than guess;
-- source-validity changes during a Memory Maker review invalidate that result.
-
-Proposal review:
-
-- Saved Memories / Suggestions screen;
-- one non-blocking in-chat proposal at a time;
-- operation-specific Create/Edit/Merge/Delete presentation;
-- Yes / No / Later;
-- Yes+note and No+note both request a revised proposal;
-- proposal batches rebase unaffected sibling proposals after one approval, while siblings whose expected targets changed remain blocked for review.
-
-Recovery:
-
-- Memory History is available from the Memory screen;
-- recoverable edits/deletes/accepted changes are shown chronologically;
-- `Review restore` creates normal Memory proposals instead of silently mutating history;
-- restoring a deleted/older Memory becomes create/edit review as appropriate;
-- undoing an accepted Memory Maker creation becomes a delete proposal;
-- the normal Yes / No review path remains authoritative.
+Memory Maker evidence remains intentionally separate from Tracker inference, Scenario/Lore as events and unchosen choices.
 
 See `SNOWBUNNY_MEMORY_IMPLEMENTATION_REFERENCE.md`.
 
 ## Memory Recall
 
-`memory-recall.js` routes relevant accepted Memories to Story Writer before generation.
+`memory-recall.js` routes relevant accepted Memories before Story Writer generation.
 
-- awaited `GENERATION_AFTER_COMMANDS` so it sees the newest user draft;
-- recent visible story + pending user turn;
-- current valid Story Tracker state is a relevance hint only;
-- bounded candidate pass for large Memory pools;
-- active model chooses at most five existing Memory ids with reasons;
-- familiar names alone are explicitly insufficient relevance;
-- resolved conflicts are not resurrected as current conflict;
-- source-changed Memories are excluded;
-- cache key includes Memory version, message fingerprints, user draft, tracker revision and source-validity set;
-- AI-selection failure falls back conservatively rather than blocking Story Writer;
-- selected accepted Memory text uses native `<recalled-memories>` wrappers;
-- per-reply View Context receipt records selection mode, invalid exclusions, tracker hint revision and selected reasons.
-
-See `SNOWBUNNY_MEMORY_RECALL_IMPLEMENTATION_REFERENCE.md`.
+- newest draft + recent visible story;
+- valid current Tracker only as a relevance hint;
+- bounded candidate pass;
+- active model selects at most five existing Memory ids with reasons;
+- familiar names alone are insufficient;
+- source-changed Memories excluded;
+- conservative fallback on selector failure;
+- selected text uses native `<recalled-memories>` wrappers;
+- View Context records mode, exclusions, tracker hint revision and reasons.
 
 ## Story Tracker / rich Story State
 
-`tracker-store.js`, `story-tracker.js`, `tracker-ui.js` and `agents-ui.js` implement the native Story Tracker path.
+`tracker-store.js`, `story-tracker.js`, `tracker-ui.js` and `agents-ui.js` implement the native Story Tracker.
 
-- substantial state stored in an authenticated chat-specific tracker file;
-- each snapshot binds to producing assistant identity plus its exact visible evidence window;
-- snapshots form a previous-state dependency chain;
-- edit/delete/swipe/history changes mark affected snapshots stale and propagate through descendants;
+- authenticated chat-specific snapshot store;
+- source-bound snapshots with previous-state dependency chain;
+- edits/deletes/swipes propagate staleness through descendants;
 - stale state is removed from writer routing while historical panels remain readable;
-- deep branch changes rebuild chronologically from the latest valid chain point;
-- historical replay windows stop at the reply being rebuilt, preventing future-story leakage;
-- queued group/multi-speaker replies are processed in order;
-- failed rebuild stops at the broken continuity point;
-- current state is hidden writer context, never rewritten into visible user prose;
-- Time & Place + rich Story State render on the producing reply;
-- current valid state is editable with generated pre-edit restoration.
+- deep changes rebuild chronologically from the last trustworthy state;
+- replay never sees future story text;
+- multi-speaker replies are queued in order;
+- failed rebuild stops at the continuity break;
+- current editable state is hidden writer context, never rewritten into visible prose;
+- Time & Place + rich Story State attach to the producing reply;
+- manual edits preserve generated pre-edit state.
 
 See `SNOWBUNNY_TRACKER_IMPLEMENTATION_REFERENCE.md`.
 
 ## Custom Agents
 
-`agent-store.js`, `custom-agent-engine.js`, `custom-agent-results-ui.js`, `custom-agents-ui.js` and Agents drawer integration implement native Custom Agents alongside Story Tracker.
+Native Custom Agents now run alongside the built-in Story Tracker.
 
-Implemented:
-
-- per-chat Agent definitions and substantial result/history state;
-- template route for Custom Agent while Story Tracker/Time & Place remain built-in;
-- simple normal controls with Advanced hidden underneath;
-- On/Off;
-- manual or automatic cadence after completed story replies;
-- configurable visible result placement: header, above reply, below reply or hidden;
-- optional latest-valid result feedback to next Story Writer;
-- dependency graph with cycle/missing-dependency validation;
+- per-chat definitions/results;
+- manual/automatic cadence;
+- header/above/below/hidden placement;
+- optional latest-valid feedback to Story Writer;
+- dependencies with cycle/missing-dependency validation;
 - optional accepted-Memory evidence;
 - strict visible-story evidence and unchosen-CYOA exclusion;
-- source fingerprints and stale-result reconciliation;
-- failure state without destroying the previous valid result;
-- import/export of Custom Agent definitions;
-- reader-facing historical result projection attached to the producing reply;
-- View Context guidance receipt when Agent feedback reached Story Writer.
+- source validity and stale-result reconciliation;
+- previous valid result survives a failed run;
+- import/export;
+- historical reader-facing result projection;
+- View Context receipt when Agent feedback reached Story Writer.
 
-Pocket Phone Upkeep remains intentionally locked until the native Phone subsystem exists. It is not being faked as an ordinary Custom Agent.
+Pocket Phone Upkeep remains intentionally locked until the native Phone subsystem exists.
 
 ## Native Regex
 
-`regex-native.js` provides the dedicated SnowBunny Regex destination while ST's mature Regex engine remains canonical.
+`regex-native.js` provides SnowBunny Regex UX while ST's mature engine remains canonical.
 
-Implemented:
-
-- true `This chat` scope stored in SnowBunny chat state;
-- `All chats` over ST global Regex rules;
-- global rules execute before chat rules through one small direct core adapter;
-- enable/disable and touch reorder;
-- Message display vs AI input phases;
-- User / Assistant targets;
-- Replace / Erase;
-- live sample preview through ST's actual Regex compiler/replacement behavior;
-- regex flags, depth, capture trimming, macro substitution and edit behavior under Advanced;
+- real `This chat` and `All chats` scopes;
+- global before chat rules through a small direct core adapter;
+- reorder/toggle;
+- Message display vs AI input;
+- User/Assistant targets;
+- Replace/Erase;
+- live preview through ST's compiler/replacement behavior;
+- Advanced flags/depth/capture trimming/macros/edit behavior;
 - import/export;
-- built-in `Context Saver — States + CYOA` helper;
-- compatibility guard preserves extra ST placements on existing global rules.
+- Context Saver helper;
+- compatibility guard for extra ST placements.
 
 Canonical saved chat prose is not rewritten by SnowBunny-authored chat rules.
 
@@ -375,66 +372,63 @@ See `SNOWBUNNY_REGEX_IMPLEMENTATION_REFERENCE.md` and `SNOWBUNNY_DIRECT_CORE_CHA
 
 ## View Context / final-request audit
 
-`context-view.js` provides the SnowBunny audit sheet plus raw ST itemized-prompt access.
+Context receipts now include:
 
-Receipt producers now include:
-
-- Lore/Codex retrieval;
+- Lore/Codex retrieval and linked-Character dedup;
 - recalled Memories;
-- current Story Tracker state;
+- current Story Tracker;
 - Custom Agent writer feedback;
 - selected model/provider/API/preset;
 - Scenario/CYOA/Narrator/Members/Regex guidance summary;
-- final outgoing request capture for Chat Completion and Text Completion;
-- final request message-role counts and character count;
-- visible canonical history matched against the final outgoing request, including an omitted/unmatched list;
-- fitting warning when visible canonical messages did not survive as directly matchable final-request text;
-- whether raw `<choicecard>` markup survived into the final request.
+- final outgoing Chat/Text Completion request capture;
+- message-role and character counts;
+- visible canonical history text-matched against the final outgoing request;
+- omitted/unmatched visible history;
+- context-fitting warning;
+- whether raw `<choicecard>` markup survived into model input.
 
-The History match is intentionally labelled as text matching rather than pretending formatting transforms can always be mapped with mathematical certainty.
+History is labelled as text matching rather than pretending transformed prompts always have exact one-to-one provenance.
 
-Phone receipt evidence is still pending because the native Phone subsystem is not yet present.
+Phone receipts remain pending until the native Phone subsystem is ported.
 
 ## Current-chat utilities
 
-Reset Chat, Search in Chat and Chat Statistics are live through the real ST chat data.
+Reset Chat, Search in Chat and Chat Statistics are live through real ST chat data.
 
-## SnowBunny state + message identity
+## State, validation and launcher
 
-`state.js` keeps lightweight global/chat namespaced state.
+`state.js` keeps lightweight namespaced global/chat state. `message-identity.js` persists stable SnowBunny message ids/revisions/source fingerprints and underpins CYOA expiry, Tracker, Memory, Agents and View Context.
 
-`message-identity.js` persists stable SnowBunny message ids, revisions and source fingerprints across prose/swipe/hidden/media changes. This underpins CYOA expiry, Tracker validity, Memory proposals, Memory Recall, Custom Agents and View Context.
+`SnowBunny.bat` updates the development branch, checks packages and starts ST without the earlier repeated command sequence. It is not the final Android package.
 
-## Development validation
+`.github/workflows/snowbunny-static-check.yml` checks every SnowBunny JavaScript file plus the deliberate Regex core adapter on pushes. The current Character/Persona/shared-Codex build passes this check.
 
-`SnowBunny.bat` updates `snowbunny-mobile`, checks packages and starts the server without the earlier repeated PowerShell command sequence. It remains a development launcher, not the final Android package.
-
-`.github/workflows/snowbunny-static-check.yml` syntax-checks every SnowBunny JavaScript file plus the deliberate Regex core adapter on branch pushes. It has already caught and forced a fix for one duplicate declaration. The current native Preset editor build passes this check.
-
-The upstream merge-conflict workflow may show red on the fork because its GitHub App token cannot be minted. That workflow fails before its actual conflict check and is not a SnowBunny runtime/static result.
+The upstream merge-conflict workflow may remain red on the fork because its GitHub App token cannot be minted; it fails before its actual conflict check and is not a SnowBunny code result.
 
 ## Visual validation status
 
-The first narrow/mobile-width pass validated the original chat-shell layer and caught the fixed stock-control/composer overlap bugs.
+The first narrow/mobile-width pass validated the original chat shell and caught the fixed stock-control/composer overlap bugs.
 
-The newer navigation, AI Response, Members, Narrator, No Persona, Model, Preset editor, Scenario, CYOA, Stories, Story Settings, ownership reconciliation, Recent Chats, Codex/semantic retrieval, Memory/Recovery/Recall, Regex, Agents, Story State and expanded View Context work is implemented/wired but has **not yet received the next visual/device validation pass**. Do not call those newer surfaces visually approved until they are run.
+The newer navigation, Response, Members, Narrator, Character/Persona libraries, shared Character/Codex editor route, Model, Preset, Scenario, CYOA, Stories, Codex retrieval, Memory, Regex, Agents, Story State and expanded View Context are implemented/wired but have **not yet received the next visual/device validation pass**. Do not call those surfaces visually approved until they are run.
 
 ## Still not complete
 
-- Narrator independent-speaker dispatch and Narrator-only new-chat fallback;
-- native Pocket Phone state/conversations + Pocket Phone Upkeep Agent and Phone context receipts;
+- independent Narrator-speaker dispatch and Narrator-only new-chat fallback;
+- native Pocket Phone state/conversations, Pocket Phone Upkeep and Phone receipts;
 - Memory Maker cross-chat source validation without opening the source chat;
-- Character <-> Codex Character stable shared-document identity/dedup;
-- advanced Lore embedding-source UI;
+- final advanced Lore embedding-source UI;
 - selective multi-connection/profile switching in Model;
 - native full preset editors for non-Chat-Completion backend families;
 - final extension quick-action tray in composer;
 - safe historical Retry semantics;
 - message multi-select behavior;
-- native SnowBunny Character/Persona global libraries/editors;
+- direct SnowBunny Character import/export/safe delete/replace/rename/artwork workflows;
+- direct SnowBunny Persona creation/import/avatar replacement/delete/advanced placement workflows;
 - full brand-new-chat flow with no existing Character/Members context;
 - Android packaging and true-device polish.
 
 ## Next implementation focus
 
-The strongest remaining continuity seam is the native Pocket Phone subsystem because Memory Maker, Agents and View Context already have explicit places waiting for real Phone evidence. Character/Codex shared identity and native Character/Persona library editors are the other major data-model seam. A fresh narrow/mobile visual pass is due soon so layout/keyboard/drag issues in the newly added surfaces are caught before more presentation work stacks on top.
+The Character/Persona shared-authoring seam is now in place. The strongest remaining continuity block is the native Pocket Phone subsystem because Memory Maker, Custom Agents and View Context already have explicit routing/evidence slots waiting for real Phone state.
+
+A fresh narrow/mobile visual pass is also due soon. It should happen before presentation work stacks much further, so keyboard, drag/reorder, selector and workspace layout problems in the newly added surfaces are caught early.
