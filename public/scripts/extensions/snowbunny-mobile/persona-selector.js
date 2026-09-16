@@ -116,14 +116,34 @@ function personaName(id) {
     return power_user.personas?.[id] || (id === user_avatar ? context()?.name1 : '') || '[Unnamed Persona]';
 }
 
+function restorePersonaContext(id = user_avatar) {
+    const descriptor = power_user.persona_descriptions?.[id];
+    if (!descriptor) {
+        power_user.persona_description = '';
+        power_user.persona_description_position = persona_description_positions.IN_PROMPT;
+        power_user.persona_description_depth = 2;
+        power_user.persona_description_role = 0;
+        power_user.persona_description_lorebook = '';
+        return;
+    }
+    power_user.persona_description = descriptor.description ?? '';
+    power_user.persona_description_position = descriptor.position ?? persona_description_positions.IN_PROMPT;
+    power_user.persona_description_depth = descriptor.depth ?? 2;
+    power_user.persona_description_role = descriptor.role ?? 0;
+    power_user.persona_description_lorebook = descriptor.lorebook ?? '';
+}
+
 function applyNoPersonaSuppression() {
-    if (!context()?.getCurrentChatId?.() || !noPersonaSelected()) return;
+    const api = context();
+    if (!api?.getCurrentChatId?.() || !noPersonaSelected()) return;
+    // This is an in-memory per-chat routing override. Do not persist NONE into
+    // SillyTavern's global Persona settings or another chat would inherit it.
+    power_user.persona_description = '';
     power_user.persona_description_position = persona_description_positions.NONE;
     power_user.persona_description_lorebook = '';
-    context()?.saveSettingsDebounced?.();
-    if (context()?.chatMetadata?.persona) {
-        delete context().chatMetadata.persona;
-        context().saveMetadataDebounced?.();
+    if (api.chatMetadata?.persona) {
+        delete api.chatMetadata.persona;
+        api.saveMetadataDebounced?.();
     }
 }
 
@@ -142,7 +162,11 @@ async function selectPersona(id) {
     applyingChatPersona = true;
     try {
         snowState()?.patchChat?.({ noPersona: false });
-        await setUserAvatar(id, { toastPersonaNameChange: false, navigateToCurrent: false });
+        if (id !== user_avatar) {
+            await setUserAvatar(id, { toastPersonaNameChange: false, navigateToCurrent: false });
+        } else {
+            restorePersonaContext(id);
+        }
         await setPersonaLockState(true, 'chat');
     } finally {
         applyingChatPersona = false;
@@ -159,14 +183,18 @@ async function applyChatPersonaState() {
         queueEnhance();
         return;
     }
+
     const locked = api.chatMetadata?.persona;
-    if (locked && locked !== user_avatar && power_user.personas?.[locked]) {
-        applyingChatPersona = true;
-        try {
-            await setUserAvatar(locked, { toastPersonaNameChange: false, navigateToCurrent: false });
-        } finally {
-            applyingChatPersona = false;
+    const target = locked && power_user.personas?.[locked] ? locked : user_avatar;
+    applyingChatPersona = true;
+    try {
+        if (target && target !== user_avatar) {
+            await setUserAvatar(target, { toastPersonaNameChange: false, navigateToCurrent: false });
+        } else {
+            restorePersonaContext(target);
         }
+    } finally {
+        applyingChatPersona = false;
     }
     queueEnhance();
 }
@@ -267,7 +295,7 @@ function enhance() {
     const row = personaRow();
     if (!(row instanceof HTMLButtonElement)) return;
     const value = row.querySelector('.snowbunny-shell-row-value');
-    value && (value.textContent = noPersonaSelected() ? 'No Persona' : personaName(currentPersonaId()) || 'No Persona');
+    if (value) value.textContent = noPersonaSelected() ? 'No Persona' : personaName(currentPersonaId()) || 'No Persona';
     row.disabled = false;
     row.setAttribute('aria-disabled', 'false');
     if (row.dataset.snowbunnyPersona === '1') return;
