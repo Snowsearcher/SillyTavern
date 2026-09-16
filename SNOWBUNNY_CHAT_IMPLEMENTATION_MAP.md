@@ -16,6 +16,26 @@ In short:
 - SnowBunny owns the visible shell, message presentation, drawers, action menus, rich panels and mobile interaction.
 - Do not create a parallel renderer truth.
 
+## Current implementation status
+
+The disposable tap-to-reveal experiment has now been replaced by the first real SnowBunny chat-shell layer in `public/scripts/extensions/snowbunny-mobile/`.
+
+Implemented on the `snowbunny-mobile` branch:
+
+- mobile message cards are restyled directly over SillyTavern's real `.mes` DOM rather than rendered in a second WebView;
+- user and system messages receive SnowBunny presentation classes without changing canonical message text;
+- SillyTavern's permanent visible message-button pile is hidden in normal mobile reading mode while the underlying nodes remain available for compatibility;
+- tapping a message opens a SnowBunny anchored action menu rather than revealing the stock button strip;
+- current mapped actions include Copy, Edit, Use as Draft, Delete, Retry where safely applicable, Hide/Show, Collapse/Expand, View Context when ST has a saved prompt receipt, and Replies when swipes exist;
+- extension-added message actions from `.extraMesButtons` remain reachable through the menu's secondary `More` area;
+- standalone Retry / Continue controls now live after the latest assistant reply and call SillyTavern's actual generation controls;
+- the live SillyTavern `#send_textarea` remains the composer; SnowBunny only skins/re-lays it;
+- a SnowBunny attachment `+` calls the real SillyTavern file input;
+- the stock options control remains available as the tools/extensions affordance;
+- reconciliation is observer-driven and idempotent so SnowBunny-added tail controls do not create a mutation loop.
+
+This is still an implementation slice, not the finished chat shell. It deliberately does **not** yet claim to provide the final SnowBunny drawers, tracker/Memory Maker surfaces, native CYOA/rich rendering, final View Context receipt, or stable SnowBunny message identity.
+
 ## What current SillyTavern already gives us
 
 The current fork exposes enough real machinery to avoid DOM-command hacks for most core behavior.
@@ -64,8 +84,6 @@ The old handoff's `snowbunny_host.js` is a useful behavior reference because it 
 
 ## Message actions
 
-The current experimental `snowbunny-mobile` tap hook is disposable. It only reveals SillyTavern's existing button pile and is not the final interaction.
-
 Final behavior:
 
 - tap/hold a message -> SnowBunny action menu anchored to that message;
@@ -74,9 +92,11 @@ Final behavior:
 - mutating actions disable while generation makes them unsafe;
 - no permanent action row in normal reading mode.
 
-For core actions, call SillyTavern's real functions/adapters rather than pretending to click coordinates.
+For core actions, call SillyTavern's real functions/adapters rather than pretending to click coordinates when a stable API exists.
 
 For extension-added message actions, preserve compatibility with the existing hidden `.extraMesButtons` / extension hooks. SnowBunny can surface those as a secondary `More` / tools section and forward to the real registered handler when no cleaner extension API exists. Do not lose extension message actions merely because the stock button row is hidden.
+
+Current implementation note: `Select` and safe historical Retry semantics still need their final behavior. Do not fake either merely to fill a menu slot.
 
 ## Retry / Continue / Replies
 
@@ -186,12 +206,6 @@ Discard as architecture:
 - duplicate generation controller/API stack;
 - porting the compiled Tavo renderer bundle into the fork as a parallel frontend.
 
-## Current experimental branch hook
-
-`public/scripts/extensions/snowbunny-mobile/index.js` and `style.css` currently implement only a small mobile tap-selection experiment over stock ST message buttons.
-
-Treat it as disposable scaffolding. It may be replaced rather than incrementally stretched into the final shell.
-
 ## Direct-core-change budget
 
 Prefer the SnowBunny extension/layer plus public ST APIs/events.
@@ -203,10 +217,10 @@ Do not fork large chunks of `script.js` merely to achieve styling/navigation.
 ## Implementation order for the chat shell
 
 1. Establish the SnowBunny shell and compatibility namespace without changing generation behavior.
-2. Restyle/restructure message presentation while preserving `.mes`, `.mes_text`, avatar/speaker and extension compatibility nodes.
-3. Replace the experimental message-action reveal with the SnowBunny anchored action menu wired to real ST actions.
-4. Re-layout the real ST composer into the approved SnowBunny composer while preserving `#send_textarea` identity.
-5. Add latest-message Retry/Continue and SnowBunny Replies/swipe UI.
+2. Restyle/restructure message presentation while preserving `.mes`, `.mes_text`, avatar/speaker and extension compatibility nodes. **First pass implemented.**
+3. Replace the experimental message-action reveal with the SnowBunny anchored action menu wired to real ST actions. **First pass implemented.**
+4. Re-layout the real ST composer into the approved SnowBunny composer while preserving `#send_textarea` identity. **First pass implemented.**
+5. Add latest-message Retry/Continue and SnowBunny Replies/swipe UI. **Retry/Continue first pass implemented; Replies currently delegates to ST's real swipe picker.**
 6. Attach Tracker/Story State and Memory Maker proposal surfaces.
 7. Integrate CYOA/rich graphics/display Regex into the same message shell.
 8. Wire View Context receipts and stable message identity/source invalidation.
