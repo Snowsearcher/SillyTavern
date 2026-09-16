@@ -190,10 +190,13 @@ async function writerContext({ endMessageId = '', maxContacts = 12, maxMessagesP
             privateState: String(contact.privateState || ''),
             availability: String(contact.availability || ''),
             messages: safeArray(contact.messages).slice(-Math.max(1, maxMessagesPerContact)).map(message => ({
+                id: message.id,
+                through: clone(message.through),
                 sender: message.user ? 'player' : contact.name,
                 text: String(message.text || ''),
                 media: deliveredMedia(message.media),
                 storyTime: String(message.storyTime || ''),
+                createdAt: Number(message.createdAt) || 0,
                 unread: message.user ? false : message.unread === true,
             })),
         }));
@@ -202,6 +205,8 @@ async function writerContext({ endMessageId = '', maxContacts = 12, maxMessagesP
         brand: String(visible.brand || ''),
         contacts,
         profiles: visible.profiles.map(profile => ({
+            id: profile.id,
+            through: clone(profile.through),
             actorKey: phone()?.actorKey?.(profile.actor) || '',
             name: profile.name,
             handle: profile.handle,
@@ -209,16 +214,22 @@ async function writerContext({ endMessageId = '', maxContacts = 12, maxMessagesP
             fields: clone(profile.fields),
         })),
         posts: visible.posts.slice(-24).map(post => ({
+            id: post.id,
+            through: clone(post.through),
             authorActorKey: post.authorActorKey,
             text: post.text,
             media: deliveredMedia(post.media),
             storyTime: post.storyTime,
+            createdAt: Number(post.createdAt) || 0,
         })),
         actions: visible.actions.slice(-24).map(action => ({
+            id: action.id,
+            through: clone(action.through),
             kind: action.kind,
             audience: action.audience,
             text: action.text,
             storyTime: action.storyTime,
+            createdAt: Number(action.createdAt) || 0,
         })),
     };
 }
