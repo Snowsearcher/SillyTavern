@@ -56,7 +56,7 @@ The generated Story-level network identity includes:
 - one allowed semantic stock-icon id;
 - setting-appropriate terminology for the network's home/feed, posts, replies, profiles, spaces/groups, reactions, reshares, following and saved items.
 
-The icon identity is semantic and stable. The current implementation renders those ids with Font Awesome fallbacks until dedicated SnowBunny image assets are added. Artwork can replace the visual without rewriting the saved fictional network identity.
+The icon identity is semantic and stable. The current implementation renders those ids with Font Awesome fallbacks until dedicated SnowBunny image assets are added. Story artwork may replace the visible network image without rewriting the generated semantic identity.
 
 Do not use real product names such as Reddit, X or Facebook unless that real service is explicitly part of the Story canon.
 
@@ -88,7 +88,7 @@ Do not add a generic "refresh reality" button that repeatedly manufactures new p
 
 The player may have a public profile and may publish public posts/replies when the Story's generated network supports those concepts.
 
-Public profile presentation is separate from the Persona's canonical Character/personality data. Editing a display name, handle or bio must not rewrite the Persona or private contacts.
+Public profile presentation is separate from the Persona's canonical Character/personality data. Editing a display name, handle, bio or Phone picture must not rewrite the Persona or private contacts.
 
 Publishing public activity records a public Phone action at the current Story anchor/time. It does not advance Story time by itself.
 
@@ -160,15 +160,25 @@ Preserve this split unless a later explicit sharing rule changes it:
 - Shared actor identity links the same Character/Codex person across surfaces without making private state global.
 - Imported artwork does not create contacts or silently wire fictional relationships.
 
+## Profiles, pictures and reusable artwork
+
+Phone presentation is separate from fictional identity.
+
+Public profiles and acquired private contacts can have Phone-specific picture overrides. When no override exists, linked Character public/private identities fall back to their Character avatar, and the player's public profile can fall back to the current Persona image. Using a Phone picture never rewrites the Character card or Persona.
+
+Reusable artwork is stored in explicit artwork folders. Story chats keep those folders at Story scope so the same imported image can be reused across the Story; stand-alone chats keep their library local. Multiple image files can be imported in one picker pass. Importing artwork does not create a profile, contact, actor, relationship or story event.
+
+An imported library image can be explicitly assigned to a public profile, private contact, or the Story network's visible app image. The generated network's semantic name/mode/icon identity remains unchanged when a custom image is assigned.
+
 ## Gallery and media
 
 Photos/voice are proposals first, not automatically delivered facts.
 
 A media request becomes factual Phone evidence only after fulfillment is ready. Settings gate whether photo or voice proposals are allowed.
 
-Gallery shows delivered Phone media.
+Gallery shows delivered Phone media. Reusable profile/network artwork is presentation material and must not be misreported as a delivered in-story photo.
 
-The fuller artwork system still needs to restore Profiles & pictures, Artwork folders, image-bundle import, Character/profile picture assignment, Story-network app-image assignment and reusable background/profile artwork without inventing social relationships.
+The full generated-media fulfillment path is still separate work: proposed incoming photos/voice must become actual delivered assets through an explicit fulfillment step before entering factual Phone history or Gallery.
 
 ## Memory and context routing
 
@@ -220,6 +230,16 @@ Editing, deleting, hiding or swiping Story history must not leave invalid derive
 - follow, react, save, public profile and thread interactions;
 - public post/reply composer with mode-specific validation;
 - editable player public profile presentation;
+- native SillyTavern Phone image upload using the authenticated `/api/files/upload` path;
+- public profile picture overrides with Character/Persona fallback;
+- private-contact presentation-picture overrides without changing Character identity;
+- Story-shared public-profile artwork where appropriate;
+- collapsed `Profiles & pictures` manager in Phone Settings;
+- reusable Story-level artwork folders with stand-alone-chat fallback;
+- multi-image artwork import into explicit folders;
+- explicit library assignment to public profiles, private contacts and Story-network presentation;
+- Story-network custom image rendering without changing its generated semantic identity;
+- artwork ownership regression tests;
 - regression checks for social schema, mode normalization and Story ownership;
 - native `social` Phone view; legacy `Nightowl` survives only as a compatibility alias for older callers.
 
@@ -227,10 +247,7 @@ Editing, deleting, hiding or swiping Story history must not leave invalid derive
 
 Do not mark Pocket Phone complete until these are real and tested:
 
-- Profiles & pictures management for public/private Phone identities;
-- Artwork folders and image-bundle import;
-- Character/profile picture assignment and reusable Story artwork;
-- dedicated stock social-app image assets replacing temporary Font Awesome visual fallbacks;
+- dedicated stock social-app image assets replacing temporary Font Awesome visual fallbacks when no Story artwork override is assigned;
 - full media request fulfillment pipeline for generated photos/voice;
 - richer public-network interactions only where they make sense for the generated mode (for example reshare/quote behavior if supported by that network), without turning the UI into a permanent button wall;
 - efficient long-feed handling/paging for large public histories;
