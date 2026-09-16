@@ -16,6 +16,10 @@ function memoryStore() {
     return globalThis.SnowBunny?.memories ?? null;
 }
 
+function memoryIntegrity() {
+    return globalThis.SnowBunny?.memoryIntegrity ?? null;
+}
+
 function trackerStore() {
     return globalThis.SnowBunny?.trackers ?? null;
 }
@@ -65,7 +69,6 @@ function terms(text) {
 
 function overlapScore(memory, queryTerms, queryText) {
     const title = normalizeText(memory.title);
-    const details = normalizeText(memory.details);
     let score = 0;
     if (title && queryText.includes(title)) score += 18;
     for (const word of terms(`${memory.title} ${memory.details}`)) {
@@ -137,12 +140,13 @@ function hash(value) {
     return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-function sourceKey({ memoryVersion, source, draft, tracker }) {
+function sourceKey({ memoryVersion, source, draft, tracker, invalidIds }) {
     return hash(JSON.stringify({
         memoryVersion,
         messages: source?.messages || [],
         draft: String(draft || ''),
         tracker: tracker ? [tracker.id, tracker.revision, tracker.updatedAt] : null,
+        invalidIds: [...invalidIds].sort(),
     }));
 }
 
@@ -186,11 +190,19 @@ async function computeRecall({ includeDraft = true } = {}) {
         pendingReceipt = null;
         return [];
     }
+    await memoryIntegrity()?.reconcile?.();
     const state = await store.read();
-    const memories = Array.isArray(state.memories) ? state.memories : [];
+    const invalidIds = memoryIntegrity()?.invalidIds?.() ?? new Set();
+    const memories = (Array.isArray(state.memories) ? state.memories : [])
+        .filter(memory => !invalidIds.has(String(memory.id)));
     if (!memories.length) {
         setPrompt('');
-        pendingReceipt = { selected: [], memoryVersion: state.version, reason: 'No accepted Memories available.' };
+        pendingReceipt = {
+            selected: [],
+            memoryVersion: state.version,
+            invalidSourceIds: [...invalidIds],
+            reason: invalidIds.size ? 'No currently valid accepted Memories are available.' : 'No accepted Memories available.',
+        };
         return [];
     }
 
@@ -199,7 +211,7 @@ async function computeRecall({ includeDraft = true } = {}) {
     const rows = recentConversation(8, { includeDraft });
     const draft = includeDraft ? String(document.getElementById('send_textarea')?.value || '') : '';
     const queryText = `${rows.map(row => `${row.speaker}: ${row.text}`).join('\n')}\n${trackerHint(tracker)}`;
-    const key = sourceKey({ memoryVersion: state.version, source, draft, tracker });
+    const key = sourceKey({ memoryVersion: state.version, source, draft, tracker, invalidIds });
     const cached = cachedRecall(key, state.version);
     let selected;
     let mode = 'AI relevance review';
@@ -213,7 +225,7 @@ async function computeRecall({ includeDraft = true } = {}) {
 
 Select nothing when none are useful. A familiar name alone is not enough. A past event matters when the current exchange refers to it, repeats a specific situation, depends on why someone cares, or needs established details for continuity. Do not force nostalgia, repeat reminders, or resurrect resolved conflict as current conflict.
 
-The Current Story State below is a relevance hint only. It cannot create or alter historical facts. Select only existing Memory IDs. Private information remains private to the people who know it.
+The Current Story State below is a relevance hint only. It cannot create or alter historical facts. Select only existing Memory IDs. Private information remains private to the people who know it. Memories whose original story evidence changed are excluded before you see the candidate list.
 
 Return JSON only: {"selected":[{"id":"existing Memory ID","reason":"brief specific connection to this scene"}]}. Choose at most ${MAX_SELECTED}.`;
         const userPrompt = `${tracker ? `Current Story State (relevance hint only):\n${trackerHint(tracker)}\n\n` : ''}Accepted Memories:\n${JSON.stringify(pool.map(memory => ({ id: memory.id, title: memory.title, details: memory.details })))}\n\nRecent conversation and pending user turn:\n${rows.map(row => `${row.speaker}: ${row.text}`).join('\n\n')}`;
@@ -227,6 +239,8 @@ Return JSON only: {"selected":[{"id":"existing Memory ID","reason":"brief specif
             if (!store.sourceStillValid(source)) throw new Error('Story history changed during Memory Recall.');
             const latest = await store.read({ fresh: true });
             if (latest.version !== state.version) throw new Error('Accepted Memories changed during Memory Recall.');
+            const currentInvalid = memoryIntegrity()?.invalidIds?.() ?? new Set();
+            if ([...currentInvalid].sort().join('|') !== [...invalidIds].sort().join('|')) throw new Error('Memory source validity changed during Memory Recall.');
             const currentTracker = await trackerStore()?.current?.();
             if ((tracker?.id || '') !== (currentTracker?.id || '') || Number(tracker?.revision || 0) !== Number(currentTracker?.revision || 0)) {
                 throw new Error('Current Story State changed during Memory Recall.');
@@ -251,6 +265,7 @@ Return JSON only: {"selected":[{"id":"existing Memory ID","reason":"brief specif
     pendingReceipt = {
         memoryVersion: state.version,
         selectionMode: mode,
+        invalidSourceIds: [...invalidIds],
         trackerHint: tracker ? { snapshotId: tracker.id, revision: tracker.revision } : null,
         selected: selected.map(item => ({
             id: item.id,
@@ -312,6 +327,7 @@ export function initMemoryRecall() {
     initialized = true;
     registerEvents();
     document.addEventListener('snowbunny:memories-changed', invalidate);
+    document.addEventListener('snowbunny:memory-integrity-changed', invalidate);
     document.addEventListener('snowbunny:tracker-state-changed', () => {
         globalThis.SnowBunny?.state?.deleteChatKey?.('memoryRecall');
     });
