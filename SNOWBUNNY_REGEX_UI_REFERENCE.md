@@ -6,6 +6,8 @@ This file records Regex as its own SnowBunny system. It must not be merged with 
 
 Regex is a transformation engine for chat presentation and AI input.
 
+Its purpose in SnowBunny is broader than cosmetic text replacement. Regex is also an important **context-management and general-writing support layer**: it can keep older history lean, remove stale presentation/state markup from model input, preserve richer on-screen presentation without feeding all of that decoration back to the writer, and support other writing/context workflows that need deterministic transforms.
+
 It owns:
 - global / all-chat rules;
 - per-chat rules;
@@ -77,7 +79,7 @@ SnowBunny already uses important Regex rules for things such as:
 
 Preserve these concepts. Do not dismiss Regex as merely a word-replacement feature.
 
-Context Saver is especially important because it can strip presentation/state markup from older AI-input history without deleting the original message itself.
+Context Saver is especially important because it can strip presentation/state markup from older AI-input history without deleting the original message itself. This is the intended philosophy: preserve the rich story-reading experience while giving the Story Writer cleaner, more useful context.
 
 ## Interactive messages
 
@@ -109,4 +111,5 @@ Future implementation sessions must not:
 - throw every technical field into the default view when it can live under Advanced;
 - remove import/export or ordering;
 - strip out Context Saver / rich-presentation use cases because they are more sophisticated than simple replacements;
+- reduce Regex to cosmetic wording replacement and lose its context-management / general-writing support role;
 - require native CYOA to depend on user-managed Regex rules.
