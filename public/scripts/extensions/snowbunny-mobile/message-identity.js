@@ -27,6 +27,17 @@ function fingerprintText(value) {
     return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
+function mediaFingerprint(message) {
+    const media = message?.extra?.media;
+    if (!Array.isArray(media)) return null;
+    return media.map(item => ({
+        type: item?.type ?? '',
+        source: item?.source ?? '',
+        url: item?.url ?? item?.path ?? '',
+        name: item?.name ?? '',
+    }));
+}
+
 export function messageFingerprint(message, api = context()) {
     const ignoreKey = api?.symbols?.ignore;
     const hidden = Boolean(ignoreKey && message?.extra?.[ignoreKey]);
@@ -36,6 +47,7 @@ export function messageFingerprint(message, api = context()) {
         mes: message?.mes ?? '',
         swipeId: Number.isInteger(message?.swipe_id) ? message.swipe_id : null,
         hidden,
+        media: mediaFingerprint(message),
     });
     return fingerprintText(material);
 }
@@ -54,15 +66,25 @@ function validId(value) {
     return typeof value === 'string' && value.length >= 12 && value.length <= 128;
 }
 
-export function ensureMessageIdentity(message, api = context()) {
+function replaceIdentity(meta, api, originId = null) {
+    meta.id = stableId(api);
+    meta.revision = 1;
+    delete meta.source;
+    if (validId(originId)) meta.originId = originId;
+}
+
+export function ensureMessageIdentity(message, api = context(), { forceNew = false } = {}) {
     if (!message || typeof message !== 'object') return false;
 
     const meta = messageMeta(message);
     let changed = false;
 
-    if (!validId(meta.id)) {
-        meta.id = stableId(api);
-        meta.revision = 1;
+    if (forceNew) {
+        const originId = validId(meta.id) ? meta.id : null;
+        replaceIdentity(meta, api, originId);
+        changed = true;
+    } else if (!validId(meta.id)) {
+        replaceIdentity(meta, api);
         changed = true;
     }
 
@@ -87,6 +109,7 @@ export function currentMessageIdentity(message) {
         id: meta.id,
         revision: Math.max(1, Number(meta.revision) || 1),
         source: typeof meta.source === 'string' ? meta.source : null,
+        originId: validId(meta.originId) ? meta.originId : null,
     };
 }
 
@@ -123,9 +146,15 @@ export function reconcileMessageIdentities({ persist = true } = {}) {
     const chat = api?.chat;
     if (!Array.isArray(chat) || !api?.getCurrentChatId?.()) return false;
 
+    const seen = new Set();
     let changed = false;
     for (const message of chat) {
         changed = ensureMessageIdentity(message, api) || changed;
+        const meta = messageMeta(message);
+        if (seen.has(meta.id)) {
+            changed = ensureMessageIdentity(message, api, { forceNew: true }) || changed;
+        }
+        seen.add(messageMeta(message).id);
     }
 
     if (changed && persist) scheduleSave();
