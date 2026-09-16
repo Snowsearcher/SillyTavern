@@ -126,13 +126,15 @@ function storyProfilePicture(profileId) {
 }
 
 function profilePicture(profile) {
+    const player = String(profile?.actor?.key || '') === 'player-public';
+    if (!player) {
+        const storyPicture = storyProfilePicture(profile?.id);
+        if (storyPicture) return storyPicture;
+    }
     const explicit = String(profile?.picture || '').trim();
     if (explicit) return explicit;
-    const storyPicture = storyProfilePicture(profile?.id);
-    if (storyPicture) return storyPicture;
     const linked = actorPicture(profile?.actor);
     if (linked) return linked;
-    const player = String(profile?.actor?.key || '') === 'player-public';
     const api = context();
     const persona = String(api?.chatMetadata?.persona || '');
     if (player && persona && typeof api?.getThumbnailUrl === 'function') {
