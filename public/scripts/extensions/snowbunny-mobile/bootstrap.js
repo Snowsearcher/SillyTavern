@@ -1,3 +1,4 @@
+import { initContextView } from './context-view.js';
 import { init as initMobileShell } from './index.js';
 import {
     currentMessageIdentity,
@@ -45,5 +46,6 @@ export function init() {
     installNamespace();
     initSnowBunnyState();
     initMessageIdentity();
+    initContextView();
     initMobileShell();
 }
