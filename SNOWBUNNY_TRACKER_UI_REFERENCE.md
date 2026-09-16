@@ -161,3 +161,9 @@ The correct approach is **refine what SnowBunny already has**:
 - keep the same state useful to Snow and to the next Story Writer generation.
 
 This is a major SnowBunny feature, not ancillary UI.
+
+## Settled priority note
+
+Snow explicitly reaffirmed that the bottom tracker is a **pretty panel at the bottom of the story message**, built for reader enjoyment as well as for the next Story Writer generation. Purachina's trackers are a direct inspiration for this feature's quality bar. Treat this as a settled product requirement, not a tentative styling preference.
+
+If any older note or future implementation language describes the bottom tracker as a compact widget, minor addition, AI-only utility, debug aid, or disposable presentation layer, this document overrides that wording. Refine the existing crafted panel instead of flattening it.
