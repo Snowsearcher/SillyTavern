@@ -32,6 +32,7 @@ import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
 import { initShellTransitions } from './shell-transitions.js';
 import { initStoriesLibrary } from './stories-library.js';
+import { initStoryCreateSafety } from './story-create-safety.js';
 import { initStoryLorebooks } from './story-lorebooks.js';
 import { initStoryOwnership } from './story-ownership.js';
 import { initStorySettings } from './story-settings.js';
@@ -100,6 +101,7 @@ export function init() {
     initChatStatistics();
     initStoriesLibrary();
     initStorySettings();
+    initStoryCreateSafety();
     initRecentChats();
     initCodex();
     initStoryLorebooks();
