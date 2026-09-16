@@ -9,6 +9,7 @@ import {
     messageFingerprint,
     reconcileMessageIdentities,
 } from './message-identity.js';
+import { initMemberSelector } from './member-selector.js';
 import { initModelSelector } from './model-selector.js';
 import { initPersonaSelector } from './persona-selector.js';
 import { initScenario } from './scenario.js';
@@ -59,6 +60,7 @@ export function init() {
     initMobileShell();
     initSnowBunnyShell();
     initShellActions();
+    initMemberSelector();
     initModelSelector();
     initPersonaSelector();
     initScenario();
