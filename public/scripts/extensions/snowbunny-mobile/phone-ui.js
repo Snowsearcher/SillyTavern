@@ -15,6 +15,10 @@ function phone() {
     return globalThis.SnowBunny?.phone ?? null;
 }
 
+function social() {
+    return globalThis.SnowBunny?.phoneSocial ?? null;
+}
+
 function conversation() {
     return globalThis.SnowBunny?.phoneConversation ?? null;
 }
@@ -118,11 +122,6 @@ function installStyles() {
   }
   #${WORKSPACE_ID} .sb-phone-secondary { width: 100%; margin: 0 0 8px; }
   #${WORKSPACE_ID} .sb-phone-empty { padding: 26px 16px; border: 1px dashed color-mix(in srgb, var(--SmartThemeBorderColor) 52%, transparent); border-radius: 18px; font-size: .75rem; line-height: 1.45; text-align: center; opacity: .62; }
-  #${WORKSPACE_ID} .sb-phone-post { margin-bottom: 9px; padding: 12px; border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 54%, transparent); border-radius: 18px; background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 53%, transparent); }
-  #${WORKSPACE_ID} .sb-phone-post-head { display: flex; gap: 7px; align-items: baseline; margin-bottom: 7px; }
-  #${WORKSPACE_ID} .sb-phone-post-head strong { font-size: .8rem; }
-  #${WORKSPACE_ID} .sb-phone-post-head small { font-size: .64rem; opacity: .5; }
-  #${WORKSPACE_ID} .sb-phone-post p { margin: 0; white-space: pre-wrap; font-size: .79rem; line-height: 1.45; }
   #${WORKSPACE_ID} .sb-phone-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
   #${WORKSPACE_ID} .sb-phone-gallery-card { min-height: 120px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 54%, transparent); border-radius: 18px; background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 53%, transparent); }
   #${WORKSPACE_ID} .sb-phone-gallery-card img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; }
@@ -146,6 +145,7 @@ function workspace() {
         document.body.append(root);
     }
     root.replaceChildren();
+    delete root.dataset.snowbunnyPhoneView;
     return root;
 }
 
@@ -248,6 +248,7 @@ async function renderHome() {
     activeView = 'home';
     activeContactId = '';
     const root = workspace();
+    root.dataset.snowbunnyPhoneView = 'home';
     header(root, 'Pocket Phone');
     const body = el('main', 'sb-phone-body');
     root.append(body);
@@ -261,15 +262,24 @@ async function renderHome() {
     const badge = el('span', 'sb-phone-badge', String(unread));
     inbox.append(inboxCopy, badge); inbox.addEventListener('click', () => void renderMessages()); body.append(inbox);
 
+    const network = social()?.read?.() || { name: 'Social', iconId: 'globe' };
     const apps = [
-        ['Messages', 'fa-message', renderMessages],
-        ['Nightowl', 'fa-moon', renderNightowl],
-        ['Settings', 'fa-gear', renderSettings],
-        ['Gallery', 'fa-images', renderGallery],
+        { label: 'Messages', iconName: 'fa-message', handler: renderMessages },
+        { label: network.name || 'Social', iconName: social()?.iconClass?.(network.iconId) || 'fa-globe', handler: renderSocial, social: true },
+        { label: 'Settings', iconName: 'fa-gear', handler: renderSettings },
+        { label: 'Gallery', iconName: 'fa-images', handler: renderGallery },
     ];
     const grid = el('div', 'sb-phone-app-grid');
-    for (const [label, iconName, handler] of apps) {
-        const button = el('button', 'sb-phone-app'); button.type = 'button'; button.append(icon(iconName), el('strong', '', label)); button.addEventListener('click', () => void handler()); grid.append(button);
+    for (const app of apps) {
+        const button = el('button', 'sb-phone-app');
+        button.type = 'button';
+        if (app.social) {
+            button.dataset.snowbunnySocial = '1';
+            button.title = network.description || `${network.name || 'Social'} public network`;
+        }
+        button.append(icon(app.iconName), el('strong', '', app.label));
+        button.addEventListener('click', () => void app.handler());
+        grid.append(button);
     }
     body.append(grid, el('p', 'sb-phone-note', 'Pocket Phone is parallel story continuity. Reading or browsing it does not advance Story time by itself.'));
 }
@@ -285,6 +295,7 @@ async function renderMessages() {
     activeView = 'messages';
     activeContactId = '';
     const root = workspace();
+    root.dataset.snowbunnyPhoneView = 'messages';
     header(root, 'Messages', renderHome);
     const body = el('main', 'sb-phone-body'); root.append(body);
     const state = await phone()?.read?.() || { contacts: [] };
@@ -323,6 +334,7 @@ async function renderThread(contactId) {
     const contact = visibleContacts(state).find(item => item.id === contactId);
     if (!contact) return renderMessages();
     const root = workspace();
+    root.dataset.snowbunnyPhoneView = 'thread';
     header(root, contact.name, renderMessages);
     const body = el('main', 'sb-phone-body'); root.append(body);
     const thread = el('div', 'sb-phone-thread'); const messages = el('div', 'sb-phone-thread-messages');
@@ -357,32 +369,25 @@ async function renderThread(contactId) {
     requestAnimationFrame(() => { body.scrollTop = body.scrollHeight; });
 }
 
-async function renderNightowl() {
-    activeView = 'nightowl'; activeContactId = '';
-    const root = workspace(); header(root, 'Nightowl', renderHome);
-    const body = el('main', 'sb-phone-body'); root.append(body);
-    const state = await phone()?.read?.() || { profiles: [], posts: [] };
-    const profiles = (state.profiles || []).filter(eventVisible);
-    const profileByActor = new Map(profiles.map(profile => [phone()?.actorKey?.(profile.actor) || profile.id, profile]));
-    const posts = (state.posts || []).filter(eventVisible).sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
-    if (!posts.length) {
-        body.append(el('div', 'sb-phone-empty', 'Nightowl has no feed yet. The social world will be maintained from the story and its persistent background users; browsing an empty feed does not invent activity or advance Story time.'));
-        return;
-    }
-    for (const post of posts) {
-        const profile = profileByActor.get(post.authorActorKey);
-        const card = el('article', 'sb-phone-post'); const head = el('div', 'sb-phone-post-head');
-        head.append(el('strong', '', profile?.name || post.authorActorKey || 'Nightowl user'));
-        if (profile?.handle) head.append(el('small', '', `@${profile.handle}`));
-        card.append(head, el('p', '', post.text || ''));
-        if (post.media) card.append(el('div', 'sb-phone-media', mediaDescription(post.media)));
-        body.append(card);
-    }
+async function renderSocial() {
+    activeView = 'social';
+    activeContactId = '';
+    const network = social()?.read?.() || { name: 'Social' };
+    const root = workspace();
+    root.dataset.snowbunnyPhoneView = 'social';
+    header(root, network.name || 'Social', renderHome);
+    const body = el('main', 'sb-phone-body');
+    body.dataset.snowbunnySocialSurface = '1';
+    body.append(el('div', 'sb-phone-empty', `${network.name || 'This public network'} is loading its Story-specific public view.`));
+    root.append(body);
+    document.dispatchEvent(new CustomEvent('snowbunny:phone-social-opened', { detail: { name: network.name || 'Social', mode: network.mode || 'hybrid' } }));
 }
 
 async function renderGallery() {
     activeView = 'gallery'; activeContactId = '';
-    const root = workspace(); header(root, 'Gallery', renderHome);
+    const root = workspace();
+    root.dataset.snowbunnyPhoneView = 'gallery';
+    header(root, 'Gallery', renderHome);
     const body = el('main', 'sb-phone-body'); root.append(body);
     const state = await phone()?.read?.() || { contacts: [], posts: [] };
     const media = [];
@@ -391,7 +396,8 @@ async function renderGallery() {
             if (message.media?.status === 'ready') media.push({ ...message.media, label: contact.name, at: message.createdAt });
         }
     }
-    for (const post of (state.posts || []).filter(eventVisible)) if (post.media?.status === 'ready') media.push({ ...post.media, label: 'Nightowl', at: post.createdAt });
+    const networkName = social()?.read?.()?.name || 'Public network';
+    for (const post of (state.posts || []).filter(eventVisible)) if (post.media?.status === 'ready') media.push({ ...post.media, label: networkName, at: post.createdAt });
     media.sort((a, b) => Number(b.at || 0) - Number(a.at || 0));
     if (!media.length) { body.append(el('div', 'sb-phone-empty', 'No delivered Phone media yet. Pending photo or voice proposals do not enter the Gallery until they are actually fulfilled.')); return; }
     const grid = el('div', 'sb-phone-gallery');
@@ -413,12 +419,28 @@ function settingSelect(labelText, help, value, values, onChange) {
     for (const [optionValue, optionLabel] of values) select.append(new Option(optionLabel, optionValue)); select.value = value; select.addEventListener('change', () => void onChange(select.value)); card.append(label, select, el('small', '', help)); return card;
 }
 
+function networkSettingCard() {
+    const network = social()?.read?.();
+    if (!network) return null;
+    const terminology = network.terminology || {};
+    const card = el('div', 'sb-phone-setting');
+    card.append(
+        el('label', '', `Story public network · ${network.name || 'Social'}`),
+        el('small', '', `${network.description || 'Story-specific public communication.'}\nStructure: ${network.mode || 'hybrid'} · Home: ${terminology.home || 'Feed'} · Items: ${terminology.post || 'Post'} · Replies: ${terminology.reply || 'Reply'} · Profiles: ${terminology.profile || 'Profile'} · Groups: ${terminology.community || 'Community'}`),
+    );
+    return card;
+}
+
 async function renderSettings() {
     activeView = 'settings'; activeContactId = '';
-    const root = workspace(); header(root, 'Phone Settings', renderHome);
+    const root = workspace();
+    root.dataset.snowbunnyPhoneView = 'settings';
+    header(root, 'Phone Settings', renderHome);
     const body = el('main', 'sb-phone-body'); root.append(body);
     const state = await phone()?.read?.({ fresh: true }); const settings = state?.settings || {};
     const host = el('div', 'sb-phone-settings');
+    const networkCard = networkSettingCard();
+    if (networkCard) host.append(networkCard);
     const save = async patch => { await phone()?.setSettings?.(patch); scheduleRefresh(); };
     host.append(
         settingToggle('Pocket Phone enabled', 'Turns Phone context and private conversations on for this chat. Turning it off does not erase saved Phone history.', settings.enabled === true, value => save({ enabled: value })),
@@ -432,14 +454,14 @@ async function renderSettings() {
     const number = el('input', 'sb-phone-input'); number.type = 'number'; number.min = '800'; number.max = '12000'; number.step = '100'; number.value = String(settings.replyLimit || 3000);
     number.addEventListener('change', () => void save({ replyLimit: Math.max(800, Math.min(12000, Number(number.value) || 3000)) }));
     reply.append(number, el('small', '', 'Separate from Phone Upkeep. Changing background maintenance must not silently change ordinary message replies.')); host.append(reply);
-    body.append(host, el('p', 'sb-phone-note', 'Profiles & pictures, artwork folders, background Nightowl users and the dedicated Phone Upkeep controls belong to the next Phone surface pass; they are not being faked by these switches.'));
+    body.append(host, el('p', 'sb-phone-note', 'Profile pictures, artwork folders, imported image bundles and the full media-fulfillment workflow remain separate Phone work. Public background identities are real Story data and are not created by importing artwork.'));
 }
 
 async function openPhone(view = 'home') {
     installStyles();
     if (!context()?.getCurrentChatId?.()) return;
     if (view === 'messages') return renderMessages();
-    if (view === 'nightowl') return renderNightowl();
+    if (view === 'social' || view === 'nightowl') return renderSocial();
     if (view === 'gallery') return renderGallery();
     if (view === 'settings') return renderSettings();
     return renderHome();
@@ -477,6 +499,7 @@ function registerEvents() {
     }
     document.addEventListener('snowbunny:phone-changed', scheduleRefresh);
     document.addEventListener('snowbunny:phone-reply-ready', scheduleRefresh);
+    document.addEventListener('snowbunny:phone-network-changed', scheduleRefresh);
     document.addEventListener('snowbunny:open-phone', event => void openPhone(event?.detail?.view || 'home'));
 }
 
@@ -493,7 +516,8 @@ export function initPhoneUi() {
             open: openPhone,
             close: closePhone,
             openMessages: () => openPhone('messages'),
-            openNightowl: () => openPhone('nightowl'),
+            openSocial: () => openPhone('social'),
+            openNightowl: () => openPhone('social'),
             openGallery: () => openPhone('gallery'),
             openSettings: () => openPhone('settings'),
         },
