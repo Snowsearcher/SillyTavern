@@ -35,6 +35,8 @@ import {
 import { initMemberSelector } from './member-selector.js';
 import { initModelSelector } from './model-selector.js';
 import { initNarrator } from './narrator.js';
+import { initPersonaAuthoring } from './persona-authoring.js';
+import { initPersonaLibrary } from './persona-library.js';
 import { initPersonaSelector } from './persona-selector.js';
 import { initPresetEditor } from './preset-editor.js';
 import { initRecentChats } from './recent-chats.js';
@@ -94,6 +96,7 @@ export function init() {
     initLorebookStore();
     initCharacterAuthoring();
     initCharacterCodexLinks();
+    initPersonaAuthoring();
     initLoreSemanticIndex();
     initMessageIdentity();
     initTrackerStore();
@@ -113,6 +116,7 @@ export function init() {
     initMobileShell();
     initSnowBunnyShell();
     initCharacterLibrary();
+    initPersonaLibrary();
     initResponseConfig();
     initShellActions();
     initMemberSelector();
