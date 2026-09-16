@@ -24,6 +24,10 @@ function trackerStore() {
     return globalThis.SnowBunny?.trackers ?? null;
 }
 
+function phoneEvidence() {
+    return globalThis.SnowBunny?.phoneEvidence ?? null;
+}
+
 function normalizeText(value) {
     return String(value || '').toLocaleLowerCase().replace(/\s+/g, ' ').trim();
 }
@@ -61,6 +65,18 @@ function trackerHint(snapshot) {
         if (value) blocks.push(`${key}: ${value}`);
     }
     return blocks.join('\n\n').slice(0, 18000);
+}
+
+function phoneHint(value) {
+    if (!value) return '';
+    const blocks = [];
+    for (const contact of value.contacts || []) {
+        const latest = (contact.latest || []).map(message => `${message.sender}: ${message.text || ''}`).join('\n');
+        blocks.push(`${contact.name} (${contact.channel || 'phone'}):${contact.privateState ? `\nPrivate continuity hint: ${contact.privateState}` : ''}${latest ? `\nRecent delivered messages:\n${latest}` : ''}`);
+    }
+    for (const post of value.recentPosts || []) blocks.push(`Recent public phone post: ${post.text || ''}`);
+    for (const action of value.recentActions || []) blocks.push(`Recent phone action: ${action.text || ''}`);
+    return blocks.join('\n\n').slice(0, 12000);
 }
 
 function terms(text) {
@@ -127,7 +143,7 @@ function fallbackSelection(memories, queryText) {
         .filter(item => item.score >= 5)
         .sort((a, b) => b.score - a.score)
         .slice(0, 3)
-        .map(item => ({ id: item.memory.id, reason: 'Direct overlap with the current conversation.' }));
+        .map(item => ({ id: item.memory.id, reason: 'Direct overlap with the current conversation or continuity hints.' }));
 }
 
 function hash(value) {
@@ -140,12 +156,13 @@ function hash(value) {
     return (h >>> 0).toString(16).padStart(8, '0');
 }
 
-function sourceKey({ memoryVersion, source, draft, tracker, invalidIds }) {
+function sourceKey({ memoryVersion, source, draft, tracker, phone, invalidIds }) {
     return hash(JSON.stringify({
         memoryVersion,
         messages: source?.messages || [],
         draft: String(draft || ''),
         tracker: tracker ? [tracker.id, tracker.revision, tracker.updatedAt] : null,
+        phone: phone || null,
         invalidIds: [...invalidIds].sort(),
     }));
 }
@@ -208,10 +225,12 @@ async function computeRecall({ includeDraft = true } = {}) {
 
     const source = store.sourceSnapshot(10);
     const tracker = await trackerStore()?.current?.();
+    const phone = await phoneEvidence()?.relevanceHints?.() || null;
     const rows = recentConversation(8, { includeDraft });
     const draft = includeDraft ? String(document.getElementById('send_textarea')?.value || '') : '';
-    const queryText = `${rows.map(row => `${row.speaker}: ${row.text}`).join('\n')}\n${trackerHint(tracker)}`;
-    const key = sourceKey({ memoryVersion: state.version, source, draft, tracker, invalidIds });
+    const phoneText = phoneHint(phone);
+    const queryText = `${rows.map(row => `${row.speaker}: ${row.text}`).join('\n')}\n${trackerHint(tracker)}\n${phoneText}`;
+    const key = sourceKey({ memoryVersion: state.version, source, draft, tracker, phone, invalidIds });
     const cached = cachedRecall(key, state.version);
     let selected;
     let mode = 'AI relevance review';
@@ -225,10 +244,10 @@ async function computeRecall({ includeDraft = true } = {}) {
 
 Select nothing when none are useful. A familiar name alone is not enough. A past event matters when the current exchange refers to it, repeats a specific situation, depends on why someone cares, or needs established details for continuity. Do not force nostalgia, repeat reminders, or resurrect resolved conflict as current conflict.
 
-The Current Story State below is a relevance hint only. It cannot create or alter historical facts. Select only existing Memory IDs. Private information remains private to the people who know it. Memories whose original story evidence changed are excluded before you see the candidate list.
+Current Story State and Pocket Phone continuity below are relevance hints only. They cannot create or alter historical facts. Pocket Phone private continuity must not be treated as an event merely because it appears in the hint. Select only existing Memory IDs. Private information remains private to the people who know it. Memories whose original evidence changed are excluded before you see the candidate list.
 
 Return JSON only: {"selected":[{"id":"existing Memory ID","reason":"brief specific connection to this scene"}]}. Choose at most ${MAX_SELECTED}.`;
-        const userPrompt = `${tracker ? `Current Story State (relevance hint only):\n${trackerHint(tracker)}\n\n` : ''}Accepted Memories:\n${JSON.stringify(pool.map(memory => ({ id: memory.id, title: memory.title, details: memory.details })))}\n\nRecent conversation and pending user turn:\n${rows.map(row => `${row.speaker}: ${row.text}`).join('\n\n')}`;
+        const userPrompt = `${tracker ? `Current Story State (relevance hint only):\n${trackerHint(tracker)}\n\n` : ''}${phoneText ? `Pocket Phone continuity (relevance hint only):\n${phoneText}\n\n` : ''}Accepted Memories:\n${JSON.stringify(pool.map(memory => ({ id: memory.id, title: memory.title, details: memory.details })))}\n\nRecent conversation and pending user turn:\n${rows.map(row => `${row.speaker}: ${row.text}`).join('\n\n')}`;
         try {
             const result = await api.generateRaw({
                 prompt: userPrompt,
@@ -245,6 +264,8 @@ Return JSON only: {"selected":[{"id":"existing Memory ID","reason":"brief specif
             if ((tracker?.id || '') !== (currentTracker?.id || '') || Number(tracker?.revision || 0) !== Number(currentTracker?.revision || 0)) {
                 throw new Error('Current Story State changed during Memory Recall.');
             }
+            const currentPhone = await phoneEvidence()?.relevanceHints?.() || null;
+            if (JSON.stringify(currentPhone) !== JSON.stringify(phone)) throw new Error('Pocket Phone continuity changed during Memory Recall.');
             selected = parseSelection(result, pool);
         } catch (error) {
             console.warn('[SnowBunny] Memory Recall review failed; using conservative direct-match fallback.', error);
@@ -267,6 +288,7 @@ Return JSON only: {"selected":[{"id":"existing Memory ID","reason":"brief specif
         selectionMode: mode,
         invalidSourceIds: [...invalidIds],
         trackerHint: tracker ? { snapshotId: tracker.id, revision: tracker.revision } : null,
+        phoneHintUsed: Boolean(phoneText),
         selected: selected.map(item => ({
             id: item.id,
             title: byId.get(item.id)?.title || item.id,
@@ -328,6 +350,7 @@ export function initMemoryRecall() {
     registerEvents();
     document.addEventListener('snowbunny:memories-changed', invalidate);
     document.addEventListener('snowbunny:memory-integrity-changed', invalidate);
+    document.addEventListener('snowbunny:phone-changed', invalidate);
     document.addEventListener('snowbunny:tracker-state-changed', () => {
         globalThis.SnowBunny?.state?.deleteChatKey?.('memoryRecall');
     });
