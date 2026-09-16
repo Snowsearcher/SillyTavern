@@ -51,7 +51,8 @@ It does not run because the user merely typed a message.
 A tracker update receives:
 
 - the previous valid current Story State;
-- a bounded recent visible-story window including the completed reply;
+- a bounded recent visible-story window ending at the exact assistant reply being tracked;
+- no future messages when an older state is being rebuilt;
 - no Lorebook/Scenario prompt dump;
 - no Memory Maker proposal machinery;
 - no unchosen CYOA result as an event.
@@ -59,6 +60,8 @@ A tracker update receives:
 Raw `<choicecard>` markup is removed from tracker evidence before the tracker reads the story. The prompt explicitly treats unchosen choices as unhappened.
 
 The result is strict JSON that is validated before replacing current state. Invalid or incomplete output leaves the previous state intact.
+
+Group/multi-speaker reply bursts are queued in order rather than collapsing several completed replies into one tracker update.
 
 ## Next-writer routing
 
@@ -95,9 +98,11 @@ When edit/delete/swipe history events occur:
 3. Descendant snapshots become stale when the previous state they depended on became stale.
 4. Stale state is immediately removed from writer routing.
 5. Historical stale panels remain visible for audit with a source-changed warning.
-6. When automatic tracking is active, SnowBunny rebuilds current state from the latest valid chain point and the current visible story.
+6. SnowBunny finds the latest still-valid snapshot before the changed branch.
+7. When automatic tracking is active, it replays each later completed assistant story reply in chronological order, using the corrected story only up to that reply and the newly rebuilt previous state.
+8. If a replay update fails, rebuilding stops there instead of skipping over the broken point and pretending later state is trustworthy.
 
-This is intentionally stricter than simply checking whether the producing assistant message still exists.
+This is intentionally stricter than simply checking whether the producing assistant message still exists or regenerating one final state from only the newest few messages. It prevents a deep history edit from silently dropping intermediate continuity.
 
 ## Manual editing
 
@@ -157,6 +162,7 @@ Do not:
 - let Memory Maker consume tracker state;
 - treat unchosen CYOA paths as events;
 - silently keep using stale state after history changes;
+- rebuild a deep edit by jumping straight to the latest reply and skipping intermediate story turns;
 - rewrite historical panels when the current state changes later;
 - discard generated pre-edit state when Snow edits current continuity;
 - flatten the rich Story State panel into debug text or a tiny utility chip.
