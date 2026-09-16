@@ -17,6 +17,10 @@ function actions() {
     return globalThis.SnowBunny?.phoneSocialActions ?? null;
 }
 
+function artwork() {
+    return globalThis.SnowBunny?.phoneArtwork ?? null;
+}
+
 function el(tag, className = '', text = '') {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -55,6 +59,20 @@ function installStyles() {
   #${EDITOR_ID} .sb-phone-social-profile-editor-head strong { flex: 1; min-width: 0; font-size: .82rem; }
   #${EDITOR_ID} .sb-phone-social-profile-editor-close {
     width: 34px; min-width: 34px; height: 34px; border: 0; border-radius: 10px; background: transparent; color: inherit;
+  }
+  #${EDITOR_ID} .sb-phone-social-profile-picture-row {
+    display: grid; grid-template-columns: 66px minmax(0, 1fr); gap: 10px; align-items: center;
+    padding: 8px; border-radius: 15px; background: color-mix(in srgb, currentColor 4%, transparent);
+  }
+  #${EDITOR_ID} .sb-phone-social-profile-picture {
+    width: 66px; height: 66px; overflow: hidden; display: grid; place-items: center;
+    border-radius: 18px; background: color-mix(in srgb, currentColor 8%, transparent); font-size: 1.2rem;
+  }
+  #${EDITOR_ID} .sb-phone-social-profile-picture img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #${EDITOR_ID} .sb-phone-social-profile-picture-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  #${EDITOR_ID} .sb-phone-social-profile-picture-actions button {
+    min-height: 36px; padding: 7px 8px; border: 0; border-radius: 11px;
+    background: color-mix(in srgb, currentColor 8%, transparent); color: inherit; font: inherit; font-size: .67rem; font-weight: 730;
   }
   #${EDITOR_ID} input, #${EDITOR_ID} textarea {
     box-sizing: border-box; width: 100%; padding: 9px 10px;
@@ -109,6 +127,20 @@ function closeEditor() {
     document.getElementById(EDITOR_ID)?.remove();
 }
 
+function picturePreview(host, profile, explicitPicture, file, objectUrl) {
+    host.replaceChildren();
+    let source = objectUrl;
+    if (!source) source = artwork()?.profilePicture?.({ ...profile, picture: explicitPicture }) || '';
+    if (source) {
+        const image = new Image();
+        image.src = source;
+        image.alt = '';
+        host.append(image);
+    } else {
+        host.append(icon(file ? 'fa-image' : 'fa-user'));
+    }
+}
+
 function buildEditor(profile) {
     const form = el('form');
     form.id = EDITOR_ID;
@@ -121,6 +153,47 @@ function buildEditor(profile) {
     close.append(icon('fa-xmark'));
     close.addEventListener('click', closeEditor);
     head.append(close);
+
+    let picture = String(profile?.picture || '');
+    let chosenFile = null;
+    let objectUrl = '';
+    const pictureRow = el('div', 'sb-phone-social-profile-picture-row');
+    const preview = el('div', 'sb-phone-social-profile-picture');
+    const pictureActions = el('div', 'sb-phone-social-profile-picture-actions');
+    const choose = el('button', '', 'Choose picture');
+    choose.type = 'button';
+    const remove = el('button', '', 'Use default');
+    remove.type = 'button';
+    pictureActions.append(choose, remove);
+    pictureRow.append(preview, pictureActions);
+    picturePreview(preview, profile, picture, chosenFile, objectUrl);
+
+    const revokePreview = () => {
+        if (!objectUrl) return;
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = '';
+    };
+
+    choose.addEventListener('click', async () => {
+        if (editorBusy) return;
+        try {
+            const file = await artwork()?.pickImage?.();
+            if (!file) return;
+            revokePreview();
+            chosenFile = file;
+            objectUrl = URL.createObjectURL(file);
+            picturePreview(preview, profile, picture, chosenFile, objectUrl);
+        } catch (cause) {
+            console.warn('[SnowBunny] Could not choose public profile artwork.', cause);
+        }
+    });
+
+    remove.addEventListener('click', () => {
+        revokePreview();
+        chosenFile = null;
+        picture = '';
+        picturePreview(preview, profile, picture, chosenFile, objectUrl);
+    });
 
     const name = el('input');
     name.name = 'name';
@@ -142,27 +215,33 @@ function buildEditor(profile) {
     bio.maxLength = 600;
     bio.value = String(profile?.bio || '');
 
-    const help = el('div', 'sb-phone-social-profile-editor-help', 'This is your public Story-network identity. Editing it does not create private contacts or change your Persona/Character card.');
+    const help = el('div', 'sb-phone-social-profile-editor-help', 'This is your public Story-network identity. Its picture is separate from your Persona avatar. “Use default” falls back to your current Persona image without rewriting it.');
     const error = el('div', 'sb-phone-social-profile-editor-error');
     error.hidden = true;
     const save = el('button', 'sb-phone-social-profile-editor-save', 'Save profile');
     save.type = 'submit';
 
-    form.append(head, name, handle, bio, help, error, save);
+    form.append(head, pictureRow, name, handle, bio, help, error, save);
     form.addEventListener('submit', async event => {
         event.preventDefault();
         if (editorBusy) return;
         editorBusy = true;
         save.disabled = true;
+        choose.disabled = true;
+        remove.disabled = true;
         error.hidden = true;
         try {
-            await actions()?.saveOwnProfile?.({ name: name.value, handle: handle.value, bio: bio.value });
+            if (chosenFile) picture = await artwork()?.uploadImage?.(chosenFile, { prefix: 'public-profile' }) || picture;
+            await actions()?.saveOwnProfile?.({ name: name.value, handle: handle.value, bio: bio.value, picture });
+            revokePreview();
             editorOpen = false;
             document.getElementById(EDITOR_ID)?.remove();
         } catch (cause) {
             error.textContent = String(cause?.message || cause);
             error.hidden = false;
             save.disabled = false;
+            choose.disabled = false;
+            remove.disabled = false;
         } finally {
             editorBusy = false;
         }
