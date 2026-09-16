@@ -118,6 +118,8 @@ async function saveOwnProfile(input = {}) {
     const name = clean(input.name, 100);
     const handle = cleanHandle(input.handle);
     const bio = String(input.bio || '').trim().slice(0, 600);
+    const hasPicture = Object.prototype.hasOwnProperty.call(input, 'picture');
+    const picture = hasPicture ? String(input.picture || '').trim().slice(0, 2048) : '';
     if (!name) throw new Error('Enter a public display name.');
     if (!handle || /\s/.test(handle)) throw new Error('Enter a public handle without spaces.');
     return (await store.mutate(draft => {
@@ -125,6 +127,7 @@ async function saveOwnProfile(input = {}) {
         profile.name = name;
         profile.handle = handle;
         profile.bio = bio;
+        if (hasPicture) profile.picture = picture;
         profile.actor = playerActor();
         profile.fields = { ...(profile.fields || {}), owner: 'player' };
         profile.updatedAt = Date.now();
