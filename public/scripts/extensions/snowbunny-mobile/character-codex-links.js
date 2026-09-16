@@ -114,13 +114,20 @@ async function syncLinkedMetadata(avatar) {
             || JSON.stringify(entry.aliases || []) !== JSON.stringify(aliases)
             || JSON.stringify(entry.tags || []) !== JSON.stringify(tags)
             || entry.link?.avatar !== record.avatar;
-        if (!changed) continue;
-        entry.name = record.name;
-        entry.aliases = clone(aliases);
-        entry.tags = clone(tags);
-        entry.link = { kind: 'character', entityId: record.entityId, avatar: record.avatar };
-        entry.updatedAt = Date.now();
-        await store.save?.(book);
+        if (changed) {
+            entry.name = record.name;
+            entry.aliases = clone(aliases);
+            entry.tags = clone(tags);
+            entry.link = { kind: 'character', entityId: record.entityId, avatar: record.avatar };
+            entry.updatedAt = Date.now();
+            await store.save?.(book);
+        }
+        // The linked entry stores identity, not a prose copy. Character text can
+        // therefore change without mutating the Lorebook JSON; explicitly wake
+        // the semantic index so its materialized shared document is refreshed.
+        document.dispatchEvent(new CustomEvent('snowbunny:linked-character-content-changed', {
+            detail: { avatar, entityId: record.entityId, bookId: book.id },
+        }));
     }
 }
 
