@@ -33,6 +33,7 @@ import { initMemberSelector } from './member-selector.js';
 import { initModelSelector } from './model-selector.js';
 import { initNarrator } from './narrator.js';
 import { initPersonaSelector } from './persona-selector.js';
+import { initPresetEditor } from './preset-editor.js';
 import { initRecentChats } from './recent-chats.js';
 import { initRegexCompatibilityGuard } from './regex-compat-guard.js';
 import { initRegexNative } from './regex-native.js';
@@ -112,6 +113,7 @@ export function init() {
     initNarrator();
     initModelSelector();
     initPersonaSelector();
+    initPresetEditor();
     initScenario();
     initCyoaNative();
     initChatStatistics();
