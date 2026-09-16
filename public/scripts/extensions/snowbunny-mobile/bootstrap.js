@@ -8,6 +8,7 @@ import { initCyoaNative } from './cyoa-native.js';
 import { init as initMobileShell } from './index.js';
 import { initLorebookStore } from './lorebook-store.js';
 import { initLoreRetrieval } from './lore-retrieval.js';
+import { initLoreSemanticIndex } from './lore-semantic-index.js';
 import {
     currentMessageIdentity,
     ensureMessageIdentity,
@@ -63,6 +64,7 @@ export function init() {
     installNamespace();
     initSnowBunnyState();
     initLorebookStore();
+    initLoreSemanticIndex();
     initMessageIdentity();
     initContextView();
     initComposerLayout();
