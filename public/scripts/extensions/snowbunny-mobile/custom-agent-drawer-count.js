@@ -12,6 +12,10 @@ function trackers() {
     return globalThis.SnowBunny?.trackers ?? null;
 }
 
+function phone() {
+    return globalThis.SnowBunny?.phone ?? null;
+}
+
 function agentsRow() {
     return [...document.querySelectorAll(`#${RIGHT_DRAWER_ID} .snowbunny-shell-row`)].find(button =>
         button.querySelector('.snowbunny-shell-row-copy strong')?.textContent?.trim() === 'Agents',
@@ -22,12 +26,15 @@ async function render() {
     queued = false;
     const row = agentsRow();
     if (!(row instanceof HTMLButtonElement) || !agents()) return;
-    const [custom, tracker] = await Promise.all([
+    const [custom, tracker, phoneState] = await Promise.all([
         agents().read(),
         trackers()?.read?.() ?? Promise.resolve(null),
+        phone()?.read?.() ?? Promise.resolve(null),
     ]);
+    const phoneActive = phoneState?.settings?.enabled === true && phoneState?.settings?.upkeep?.enabled === true;
     const active = (custom.definitions || []).filter(definition => definition.enabled).length
-        + (tracker?.settings?.automatic === false ? 0 : 1);
+        + (tracker?.settings?.automatic === false ? 0 : 1)
+        + (phoneActive ? 1 : 0);
     const failed = Object.values(custom.status || {}).filter(status => status?.status === 'failed').length;
     const value = row.querySelector('.snowbunny-shell-row-value');
     if (value) value.textContent = failed ? `${failed} failed` : active ? `${active} active` : 'Off';
@@ -47,7 +54,7 @@ export function initCustomAgentDrawerCount() {
         observer = new MutationObserver(queueRender);
         observer.observe(drawer, { childList: true, subtree: true });
     }
-    for (const name of ['snowbunny:agents-changed', 'snowbunny:agent-result-ready', 'snowbunny:agent-results-reconciled', 'snowbunny:tracker-state-changed', 'snowbunny:shell-open']) {
+    for (const name of ['snowbunny:agents-changed', 'snowbunny:agent-result-ready', 'snowbunny:agent-results-reconciled', 'snowbunny:tracker-state-changed', 'snowbunny:phone-changed', 'snowbunny:phone-upkeep-complete', 'snowbunny:shell-open']) {
         document.addEventListener(name, queueRender);
     }
     queueRender();
