@@ -39,30 +39,47 @@ Implemented:
 
 ## Recent Chats
 
-`recent-chats.js` replaces the one-card shell placeholder with the settled three-item Recent Chats behavior.
+`recent-chats.js` implements the settled three-item Recent Chats behavior.
 
 - current chat is moved to the front on chat load/change;
-- only the three most recently used chats are kept in the quick list;
+- only the three most recently used chats are kept;
 - Character and group-backed chats use stable owner + real chat-id references;
-- Story identity is shown quietly when the chat belongs to a Story;
-- tapping an older recent item opens the real ST chat rather than creating a duplicate.
+- Story identity is shown quietly when present;
+- tapping an older recent item opens the real ST chat;
+- reconciliation is idempotent so drawer mutation does not create a render loop.
 
-## Members / current-chat cast
+## Members / ordinary Character cast
 
-`member-selector.js` implements the ordinary-Character Members backend adapter.
+`member-selector.js` implements ordinary Character membership over ST's real group machinery.
 
 - `Members (N) + Add` is the current-chat cast surface;
 - portrait/name multi-select with search and favorites first;
-- existing members preselected;
-- ST group-backed chats write the real `group.members` array;
-- per-member participation/mute maps to ST `disabled_members`, so it affects real automatic group reply selection;
+- current members preselected;
+- group-backed chats write the real `group.members` array;
+- per-member participation/mute maps to `group.disabled_members`;
 - last ordinary Character cannot be removed/muted;
-- adding another ordinary Character to a legacy single-Character ST chat safely promotes by copying history/metadata into a new group-backed chat while leaving the original untouched;
+- adding another ordinary Character to a legacy single-Character chat safely copies history/metadata into a new group-backed chat while leaving the original untouched;
 - promoted chat uses ST natural activation + APPEND card mode.
 
 See `SNOWBUNNY_MEMBERS_IMPLEMENTATION_REFERENCE.md`.
 
-Still missing: the special Narrator adapter. Narrator must remain a protected built-in SnowBunny identity, not a fake ST Character.
+## Protected Narrator
+
+`narrator.js` implements the first real SnowBunny Narrator adapter.
+
+Implemented:
+
+- protected Narrator option inside the same Members picker;
+- per-chat `narratorMember` selection independent of ST `group.members`;
+- Narrator may coexist with ordinary Characters;
+- protected Narrator row appears in Members when selected;
+- dedicated global mobile editor with displayed name, portrait, Narrator instructions, Voice/style and Reset;
+- substantial Narrator authored data is stored as an authenticated SnowBunny user file, with only its path kept in lightweight global state;
+- selected Narrator is routed to the Story Writer with a native `<narrator name="...">` wrapper through ST extension-prompt plumbing with World Info scanning disabled.
+
+Still missing: independent Narrator-speaker dispatch. Ordinary Character replies still use ST group generation; Narrator-only new-chat fallback and separately labelled Narrator generated messages are not claimed complete.
+
+See `SNOWBUNNY_NARRATOR_IMPLEMENTATION_REFERENCE.md`.
 
 ## Persona
 
@@ -71,9 +88,9 @@ Still missing: the special Narrator adapter. Narrator must remain a protected bu
 - searchable portrait/name sheet;
 - default Persona surfaced as favorite;
 - selected Persona locked to current chat;
-- switching chats reapplies that chat's Persona runtime context;
+- chat switching reapplies the correct Persona runtime context;
 - real per-chat `No Persona` option;
-- No Persona suppresses Persona description/lorebook context in memory for that chat without persisting global ST Persona settings as NONE;
+- No Persona suppresses Persona description/lorebook context for that chat without persisting global ST Persona settings as NONE;
 - leaving a No Persona chat restores the appropriate Persona context;
 - pencil route reaches the full Persona manager until the native SnowBunny library/editor is ported.
 
@@ -105,7 +122,7 @@ Still missing: selective multi-connection/profile switching that applies only co
 - native preset changes are captured back;
 - edit route temporarily opens ST's real controls.
 
-Still missing: the full phone-first Preset editor with modules, reorder, import/export and Utility prompts.
+Still missing: full phone-first Preset editor with modules, reorder, import/export and Utility prompts.
 
 ## Scenario
 
@@ -128,14 +145,12 @@ Scenario lives in `chat_metadata.snowbunny` and routes to the Story Writer throu
 - dedicated writer instruction;
 - exactly one valid `<choicecard>` with 2 to 5 paths;
 - dialogue/action/direction types;
-- display removes valid raw choice markup without mutating saved assistant text;
+- valid raw choice markup is removed from display without mutating saved assistant text;
 - card attaches to the producing reply;
 - only latest visible assistant card is actionable;
 - historical cards remain readable but disabled;
 - path click revalidates producing message source/revision and latest status before sending through the real composer;
 - unchosen paths never become story events.
-
-The earlier unsafe self-observing prototype was removed; the live renderer is event-driven.
 
 ## Stories and stand-alone chats
 
@@ -153,10 +168,17 @@ The earlier unsafe self-observing prototype was removed; the live renderer is ev
 - chat discovery uses real ST Character-chat/group-chat APIs;
 - stable chat references use owner type + Character avatar/group id + real chat id;
 - current chat stores its Story id in SnowBunny chat metadata;
-- global Story index stores refs for library browsing;
+- global Story index stores refs for browsing;
 - chat rename events reconcile indexed refs.
 
-Story Lorebooks can now be represented by `story.lorebookIds` in the native Lorebook store, but the dedicated Story Settings assignment screen is still to be added. Story Memories remain to be wired.
+`story-lorebooks.js` now makes Story-owned Lorebook assignment real for the current Story:
+
+- the current-chat Lorebooks sheet exposes a separate `Story Lorebooks` action when the chat belongs to a Story;
+- Story selection edits `story.lorebookIds` through the native Lorebook store;
+- Story Lorebooks are therefore mandatory/effective for every chat in that Story while chat-specific extras remain separate;
+- changing Story bindings emits the same binding event used by Lore retrieval.
+
+Still missing: the full Story Settings surface that also manages Story Memories and chat membership from one place.
 
 ## Create sheet
 
@@ -169,73 +191,64 @@ Story Lorebooks can now be represented by `story.lorebookIds` in the native Lore
 - Character;
 - Persona.
 
-Currently:
+`create-codex-bridge.js` now makes Lorebook and Lore Entry creation functional instead of leaving them disabled:
 
-- Story creation works;
-- Chat creation works from an existing Character/Members context and explicitly asks for stand-alone or target-Story ownership;
-- Character and Persona bridge to their real managers;
-- Lorebook and Lore Entry are still temporarily disabled in the Create sheet even though the native Codex store now exists; direct creation already works from the Lorebooks/Codex workspaces and the Create-sheet bridge remains to be connected.
+- create a native SnowBunny Lorebook directly;
+- create a typed Lore Entry into an existing native Lorebook;
+- if no Lorebook exists, the flow directs creation of the book first.
+
+Story and context-aware Chat creation are also live. Character and Persona still bridge to their real ST managers until the native SnowBunny libraries/editors are ported.
 
 ## Native Lorebooks / Codex
 
-The fork now has a native SnowBunny Lorebook data layer instead of mapping Codex to ST World Info.
+The fork has a native SnowBunny Lorebook data layer rather than mapping Codex to ST World Info.
 
 `lorebook-store.js`:
 
-- stores full canonical Lorebook JSON as authenticated ST user files through the existing `/api/files/upload` path;
+- stores full canonical Lorebook JSON as authenticated ST user files through `/api/files/upload`;
 - keeps only a lightweight Lorebook index in `extension_settings.snowbunny`;
-- uses stable opaque Lorebook/entry/section ids;
-- supports typed entries, aliases, tags, Enabled, Always active, Description and ordered custom/structured sections;
-- tracks retrieval mode/settings;
-- separates content from assignment;
-- stores chat-specific extra Lorebook ids in chat metadata;
-- reads Story-owned mandatory ids from Story records;
-- computes the effective Story + chat Lorebook union;
-- deletes broken assignment/index references when a Lorebook is removed.
+- stable opaque Lorebook/entry/section ids;
+- typed entries, aliases, tags, Enabled, Always active, Description and ordered custom/structured sections;
+- retrieval settings;
+- chat-specific extra Lorebook ids in chat metadata;
+- Story-owned mandatory ids in Story records;
+- effective Story + chat Lorebook union;
+- cleanup of broken assignment/index references on delete.
 
-`codex.js` wires the same data into all three settled access contexts:
+`codex.js` wires the same data into:
 
 1. left global Lorebooks library;
 2. right current-chat Lorebook assignment;
 3. top Codex workspace.
 
-Current UI includes:
-
-- Visual/Compact Lorebook library;
-- create/edit/delete Lorebook;
-- one effective Codex book at a time with selector when multiple books are bound;
-- remembered last viewed effective book per chat;
-- prominent Codex search;
-- entries grouped by type;
-- create/edit/delete Lore Entry;
-- Character/Location/Object/Lore/Concept/Faction/Event/Other types;
-- aliases, tags, Enabled, Always active, Description;
-- addable custom structured fields;
-- Story-owned books shown locked in the current-chat assignment sheet.
+Current UI includes Visual/Compact views, create/edit/delete Lorebook, effective-book selector, remembered last viewed book, search, entries grouped by type, create/edit/delete Lore Entry, aliases/tags/toggles, addable custom structured fields, and locked Story-owned books in chat assignment.
 
 See `SNOWBUNNY_CODEX_IMPLEMENTATION_REFERENCE.md`.
 
-ST World Info is still only a future compatibility import/export target.
+ST World Info remains a future compatibility import/export target, not the native Codex backend.
 
-## Lore routing to the Story Writer
+## Semantic + exact Lore retrieval
 
-`lore-retrieval.js` routes effective native SnowBunny Lorebooks into the real Story Writer prompt.
+`lore-semantic-index.js` and `lore-retrieval.js` now implement the real first semantic retrieval path using ST's vector backend rather than pretending lexical overlap is vector search.
 
-Current keyword path supports:
+Implemented:
 
-- recent visible-history scan window;
-- Enabled filtering;
-- Always active entries;
-- exact name/alias whole-word rescue;
-- tag signals;
-- max matches;
-- per-book character budget;
-- directional native wrappers by entry type;
-- a View Context receipt describing selected Lorebook/entry ids and match reason.
+- stable SnowBunny vector collection per Lorebook/version;
+- passage generation from native Lore entries with Lorebook/entry/type/aliases/tags context;
+- passage chunking with overlap;
+- stable numeric hashes for incremental sync;
+- list/insert/delete synchronization through ST `/api/vector` endpoints;
+- semantic query through the configured embedding source (default `transformers`);
+- exact identity/tag ranking kept as a rescue signal;
+- semantic and exact rankings fused with reciprocal-rank fusion;
+- Always active entries bypass retrieval ranking;
+- max-match and per-book character budgets;
+- native typed wrappers into Story Writer context;
+- semantic source/model/readiness/error details recorded in Lore routing receipts;
+- generation-time retrieval runs on `GENERATION_AFTER_COMMANDS`, which ST awaits before prompt assembly, so the newest user draft can participate in the query;
+- graceful exact-only fallback when the vector adapter/source is unavailable.
 
-Meaning mode is **not yet the final vector system**. Until the old SnowBunny semantic index is ported it uses exact identity rescue plus a temporary lexical-overlap fallback, and the routing receipt explicitly marks the semantic vector index as not ready. Do not describe this as vector similarity.
-
-Still missing from Codex retrieval: dedicated embedding cache/passages/semantic fusion and stable Character-card <-> Codex Character shared-document dedup.
+Still missing: Character-card <-> Codex Character shared-document identity/dedup and more advanced embedding-source settings UI.
 
 ## Current-chat utilities
 
@@ -258,7 +271,7 @@ This is the validity base for Trackers, Memories, CYOA and View Context.
 
 `context-view.js` provides the SnowBunny mobile sheet with actual ST model/API metadata, SnowBunny message revision, future routing sections and a raw-ST-prompt secondary action.
 
-Lore routing now produces its own receipt section, though persistence/final receipt aggregation for every subsystem is still incomplete.
+Lore routing now produces/persists its own detailed receipt section. Full receipt aggregation for every SnowBunny subsystem remains incomplete.
 
 ## Development launcher
 
@@ -270,17 +283,15 @@ It remains a development launcher, not the final Android package.
 
 The first narrow/mobile-width pass validated the original chat-shell layer and caught the two fixed layout bugs.
 
-The newer navigation, Members, No Persona, Model, Scenario, CYOA, Stories, Recent Chats and native Codex work is implemented/wired but has **not yet received another visual/device validation pass**. Do not call those newer surfaces tested until they are run.
+The newer navigation, Members, Narrator, No Persona, Model, Scenario, CYOA, Stories, Recent Chats and native Codex/semantic work is implemented/wired but has **not yet received another visual/device validation pass**. Do not call those newer surfaces tested until they are run.
 
 ## Still not complete
 
-- Narrator member adapter and dedicated Narrator editor;
-- Story Settings for mandatory Lorebook assignment, Story Memory management and Story chat membership management;
-- full semantic/vector Lorebook index and exact+semantic fusion;
+- Narrator independent-speaker dispatch, Narrator-only new-chat fallback and separate Narrator message identity;
+- full Story Settings for Story Lorebooks + Story Memory management + chat membership management in one surface;
+- Story Memory data/ownership and Memory Maker engine/proposal UI;
 - Character <-> Codex Character stable shared-document identity/dedup;
-- Create-sheet Lorebook/Lore Entry bridge;
 - Regex destination and native display/input integration;
-- Memory Maker engine/proposal UI;
 - Agents engine/UI and Tracker/Story State panels;
 - selective multi-connection/profile switching in Model;
 - full mobile Preset editor + Utility prompts;
@@ -294,4 +305,4 @@ The newer navigation, Members, No Persona, Model, Scenario, CYOA, Stories, Recen
 
 ## Next implementation focus
 
-Finish the Codex ownership seam now that native storage exists: Story Settings Lorebook assignment + Create-sheet Lorebook/Lore Entry routes, then port the semantic retrieval index. After that, Narrator can finish the Members model without contaminating ordinary Character storage.
+With the shell, Stories and native Codex now substantially wired, the next coherent block is Story continuity state: Story Memories + Memory Maker, then Tracker/Story State so those systems can share the already-established message identity and routing receipts. Narrator special-speaker dispatch can be added alongside that without contaminating ordinary Character storage.
