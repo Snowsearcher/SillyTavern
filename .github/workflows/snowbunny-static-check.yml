@@ -46,6 +46,7 @@ jobs:
           public/scripts/extensions/snowbunny-mobile/phone-social-ui.js
           public/scripts/extensions/snowbunny-mobile/phone-social-profile-ui.js
           public/scripts/extensions/snowbunny-mobile/phone-social-artwork-ui.js
+          public/scripts/extensions/snowbunny-mobile/phone-social-paging-ui.js
           public/scripts/extensions/snowbunny-mobile/phone-social-lifecycle.js
           public/scripts/extensions/snowbunny-mobile/bootstrap.js
 
