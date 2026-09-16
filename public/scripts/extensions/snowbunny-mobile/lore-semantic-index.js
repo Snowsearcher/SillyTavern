@@ -20,6 +20,24 @@ function lorebooks() {
     return globalThis.SnowBunny?.lorebooks ?? null;
 }
 
+function characterAuthoring() {
+    return globalThis.SnowBunny?.characterAuthoring ?? null;
+}
+
+function clone(value) {
+    return value === undefined ? undefined : structuredClone(value);
+}
+
+async function materializeLinkedBook(book) {
+    const adapter = characterAuthoring();
+    if (!book || !adapter?.materializeLinkedEntry) return book;
+    const entries = [];
+    for (const entry of book.entries || []) {
+        entries.push(await adapter.materializeLinkedEntry(entry));
+    }
+    return { ...clone(book), entries };
+}
+
 function semanticConfig() {
     const configured = snowState()?.readGlobal?.()?.loreSemantic;
     const source = typeof configured?.source === 'string' && configured.source ? configured.source : DEFAULT_SOURCE;
@@ -110,7 +128,6 @@ function splitPassages(text, maxChars = DEFAULT_PASSAGE_CHARS, overlap = DEFAULT
 }
 
 function stableHash(text) {
-    // FNV-1a 32-bit. ST's vector endpoint stores hashes as numbers.
     let hash = 0x811c9dc5;
     const value = String(text || '');
     for (let index = 0; index < value.length; index++) {
@@ -156,8 +173,9 @@ async function postVector(path, body) {
     return text ? JSON.parse(text) : null;
 }
 
-async function doSyncBook(book) {
-    if (!book?.id) return { indexed: 0, inserted: 0, deleted: 0 };
+async function doSyncBook(inputBook) {
+    if (!inputBook?.id) return { indexed: 0, inserted: 0, deleted: 0 };
+    const book = await materializeLinkedBook(inputBook);
     const collection = collectionId(book.id);
     const passages = passagesForBook(book);
     const desiredHashes = new Set(passages.map(item => Number(item.hash)));
@@ -247,8 +265,9 @@ function rrfScore(rank) {
     return rank ? 1 / (RRF_K + rank) : 0;
 }
 
-export async function queryBook(book, searchText) {
-    if (!book?.id || !String(searchText || '').trim()) return { matches: [], vectorReady: false, error: '' };
+export async function queryBook(inputBook, searchText) {
+    if (!inputBook?.id || !String(searchText || '').trim()) return { matches: [], vectorReady: false, error: '' };
+    const book = await materializeLinkedBook(inputBook);
     const passages = passagesForBook(book);
     if (!passages.length) return { matches: [], vectorReady: true, error: '' };
 
@@ -327,11 +346,15 @@ async function syncChangedBook(event) {
     if (book.retrieval?.mode === 'meaning') await syncBook(book);
 }
 
+async function syncLinkedCharacterBook(event) {
+    const bookId = event?.detail?.bookId;
+    if (!bookId) return;
+    const book = await lorebooks()?.load?.(bookId);
+    if (book?.retrieval?.mode === 'meaning') await syncBook(book);
+}
+
 export function semanticStatus() {
-    return {
-        ...availability,
-        ...semanticConfig(),
-    };
+    return { ...availability, ...semanticConfig() };
 }
 
 export function initLoreSemanticIndex() {
@@ -349,4 +372,5 @@ export function initLoreSemanticIndex() {
         },
     };
     document.addEventListener('snowbunny:lorebooks-changed', event => void syncChangedBook(event));
+    document.addEventListener('snowbunny:linked-character-content-changed', event => void syncLinkedCharacterBook(event));
 }
