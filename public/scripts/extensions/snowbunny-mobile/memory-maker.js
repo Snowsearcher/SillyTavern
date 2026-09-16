@@ -10,6 +10,8 @@ Save distinctive events with future usefulness. Ordinary conversation, routine a
 
 Before creating a memory, look for an earlier account of the same event or connected episode. Prefer updating or merging connected memories when that produces one clearer historical account. Preserve useful chronology and lasting consequences. Propose deletion only when an accepted memory is actually wrong, duplicated, or no longer useful as history.
 
+An accepted Memory marked sourceChanged came from visible story evidence that was edited, swiped away, hidden, or removed after that Memory was accepted. Do not trust it as current evidence merely because it is saved. Compare it with the visible story supplied in this review. If current evidence confirms it, propose an edit with the correct complete details so approval reconnects it to current evidence. If current evidence contradicts it, propose the appropriate correction/removal. If the review does not contain enough evidence to judge it, leave it alone rather than guessing.
+
 STRICT EVIDENCE RULES: use only the visible story messages supplied in this review, the accepted memories supplied for comparison, and the user's correction when revising a proposal. Do not infer historical facts from trackers, Scenario, Lorebooks/Codex, hidden thoughts/state, instructions, unchosen CYOA paths, or other support systems. Those are intentionally not provided to you.
 
 Return JSON only in this shape:
@@ -23,6 +25,10 @@ function context() {
 
 function store() {
     return globalThis.SnowBunny?.memories ?? null;
+}
+
+function integrity() {
+    return globalThis.SnowBunny?.memoryIntegrity ?? null;
 }
 
 function visibleStory(limit = 40) {
@@ -134,6 +140,10 @@ function readingMemories(state, proposal = null) {
     return [...extras, ...recent];
 }
 
+function invalidSignature() {
+    return [...(integrity()?.invalidIds?.() ?? new Set())].map(String).sort().join('|');
+}
+
 async function review({ proposalId = '', correction = '', feedbackDecision = '' } = {}) {
     if (reviewing) return { count: 0, busy: true };
     const api = context();
@@ -143,6 +153,7 @@ async function review({ proposalId = '', correction = '', feedbackDecision = '' 
     lastError = '';
     document.dispatchEvent(new CustomEvent('snowbunny:memory-maker-status', { detail: { reviewing: true } }));
     try {
+        await integrity()?.reconcile?.();
         const state = await store().read({ fresh: true });
         const settings = state.settings || {};
         const prior = proposalId ? state.proposals.find(item => item.id === proposalId) : null;
@@ -151,7 +162,9 @@ async function review({ proposalId = '', correction = '', feedbackDecision = '' 
         const rows = visibleStory(settings.historyCount || 40);
         if (!rows.length) return { count: 0 };
         const source = store().sourceSnapshot(settings.historyCount || 40);
+        const sourceChangesAtStart = invalidSignature();
         const memories = readingMemories(state, prior);
+        const invalidIds = integrity()?.invalidIds?.() ?? new Set();
         const pending = state.proposals
             .filter(item => item.id !== proposalId)
             .map(item => ({
@@ -175,6 +188,7 @@ async function review({ proposalId = '', correction = '', feedbackDecision = '' 
             id: memory.id,
             title: memory.title,
             details: memory.details,
+            ...(invalidIds.has(String(memory.id)) ? { sourceChanged: true } : {}),
         })))}\n\nAlready pending suggestions (do not duplicate):\n${JSON.stringify(pending)}\n\nRecent visible story evidence:\n${storyTranscript(rows)}${revisionText}`;
 
         const result = await api.generateRaw({
@@ -186,6 +200,10 @@ async function review({ proposalId = '', correction = '', feedbackDecision = '' 
 
         if (!store().sourceStillValid(source)) {
             throw new Error('The story changed while Memory Maker was reviewing it. Request a fresh review.');
+        }
+        await integrity()?.reconcile?.();
+        if (invalidSignature() !== sourceChangesAtStart) {
+            throw new Error('Memory source validity changed during this review. Request a fresh review.');
         }
         const latest = await store().read({ fresh: true });
         if (latest.version !== state.version) throw new Error('Accepted Memories changed during this review. Try again.');
