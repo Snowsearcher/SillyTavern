@@ -149,7 +149,7 @@ function openNewLoreEntry() {
     window.setTimeout(() => name.focus({ preventScroll: true }), 50);
 }
 
-function replaceOption(label, handler) {
+function replaceOption(label, handler, description) {
     const sheet = document.getElementById(CREATE_SHEET_ID);
     if (!sheet) return;
     const original = [...sheet.querySelectorAll('.snowbunny-create-option')].find(button =>
@@ -158,15 +158,18 @@ function replaceOption(label, handler) {
     if (!(original instanceof HTMLButtonElement) || original.dataset.snowbunnyCodexCreate === '1') return;
     const replacement = original.cloneNode(true);
     replacement.disabled = false;
+    replacement.setAttribute('aria-disabled', 'false');
     replacement.dataset.snowbunnyCodexCreate = '1';
+    const subtitle = replacement.querySelector('.snowbunny-create-copy small');
+    if (subtitle) subtitle.textContent = description;
     replacement.addEventListener('click', handler);
     original.replaceWith(replacement);
 }
 
 function enhance() {
     queued = false;
-    replaceOption('Lorebook', openNewLorebook);
-    replaceOption('Lore Entry', openNewLoreEntry);
+    replaceOption('Lorebook', openNewLorebook, 'Create a SnowBunny Lorebook for reusable Story and chat knowledge.');
+    replaceOption('Lore Entry', openNewLoreEntry, 'Create a Character, Location, Concept or other entry inside a Lorebook.');
 }
 
 function queueEnhance() {
