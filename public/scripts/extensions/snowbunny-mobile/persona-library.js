@@ -1,4 +1,5 @@
 import { getUserAvatar } from '../../personas.js';
+import { world_names } from '../../world-info.js';
 
 const WORKSPACE_ID = 'snowbunny-persona-library';
 const STYLE_ID = 'snowbunny-persona-library-style';
@@ -86,7 +87,11 @@ function installStyles() {
   #${WORKSPACE_ID} .sbp-field summary span { flex: 1; }
   #${WORKSPACE_ID} .sbp-field-body { padding: 0 9px 10px; }
   #${WORKSPACE_ID} .sbp-field-tools { display: flex; justify-content: flex-end; gap: 5px; margin-top: 6px; }
-  #${WORKSPACE_ID} .sbp-field-tools button, #${WORKSPACE_ID} .sbp-add { min-height: 36px; padding: 6px 10px; border: 0; border-radius: 11px; background: color-mix(in srgb, currentColor 8%, transparent); color: inherit; }
+  #${WORKSPACE_ID} .sbp-field-tools button, #${WORKSPACE_ID} .sbp-add, #${WORKSPACE_ID} .sbp-avatar-button { min-height: 36px; padding: 6px 10px; border: 0; border-radius: 11px; background: color-mix(in srgb, currentColor 8%, transparent); color: inherit; }
+  #${WORKSPACE_ID} .sbp-avatar-actions { display: flex; gap: 7px; margin-top: 8px; }
+  #${WORKSPACE_ID} .sbp-avatar-actions small { flex: 1; min-width: 0; align-self: center; font-size: .66rem; opacity: .58; }
+  #${WORKSPACE_ID} .sbp-native-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #${WORKSPACE_ID} .sbp-native-note { padding: 10px 11px; border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 48%, transparent); border-radius: 14px; font-size: .67rem; line-height: 1.4; opacity: .64; }
   #${WORKSPACE_ID} .sbp-preview { display: grid; gap: 10px; }
   #${WORKSPACE_ID} .sbp-preview-block { padding: 12px; border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 54%, transparent); border-radius: 16px; background: color-mix(in srgb, var(--SmartThemeBlurTintColor) 52%, transparent); }
   #${WORKSPACE_ID} .sbp-preview-block strong { display: block; margin-bottom: 5px; font-size: .76rem; }
@@ -214,9 +219,79 @@ function writing(draft, rerender) {
     return host;
 }
 
-function details(draft) {
+function placementSelect(draft, rerender) {
+    const select = el('select', 'sbp-input');
+    for (const [value, text] of [
+        [0, 'In Story String / Prompt Manager'],
+        [2, "Top of Author's Note"],
+        [3, "Bottom of Author's Note"],
+        [4, 'In-chat @ Depth'],
+        [9, 'None (disabled)'],
+    ]) select.append(new Option(text, String(value)));
+    select.value = String(draft.native?.position ?? 0);
+    select.addEventListener('change', () => {
+        draft.native ||= {};
+        draft.native.position = Number(select.value);
+        rerender('details');
+    });
+    return select;
+}
+
+function roleSelect(draft) {
+    const select = el('select', 'sbp-input');
+    for (const [value, text] of [[0, 'System'], [1, 'User'], [2, 'Assistant']]) select.append(new Option(text, String(value)));
+    select.value = String(draft.native?.role ?? 0);
+    select.addEventListener('change', () => { draft.native ||= {}; draft.native.role = Number(select.value); });
+    return select;
+}
+
+function lorebookSelect(draft) {
+    const select = el('select', 'sbp-input');
+    select.append(new Option('None', ''));
+    const current = String(draft.native?.lorebook || '');
+    const names = [...new Set([current, ...(Array.isArray(world_names) ? world_names : [])].filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    for (const name of names) select.append(new Option(name, name));
+    select.value = current;
+    select.addEventListener('change', () => { draft.native ||= {}; draft.native.lorebook = select.value; });
+    return select;
+}
+
+async function overwritePersonaAvatar(avatar, file) {
+    if (!(file instanceof File)) return;
+    const form = new FormData();
+    form.append('avatar', file);
+    form.append('overwrite_name', avatar);
+    const response = await fetch('/api/avatars/upload', {
+        method: 'POST',
+        headers: context()?.getRequestHeaders?.({ omitContentType: true }) || {},
+        cache: 'no-cache',
+        body: form,
+    });
+    if (!response.ok) throw new Error(`Persona picture upload failed (${response.status}).`);
+    const data = await response.json();
+    const path = String(data?.path || avatar);
+    await fetch(getUserAvatar(path), { cache: 'reload' });
+}
+
+function details(draft, rerender, onAvatarFile) {
     const host = el('div', 'sbp-form');
-    const art = el('div', 'sbp-card'); const image = new Image(); image.src = getUserAvatar(draft.avatar); image.alt = ''; image.style.width = '100%'; image.style.maxHeight = '220px'; image.style.objectFit = 'cover'; art.append(image); host.append(art);
+    const art = el('div', 'sbp-card');
+    const image = new Image(); image.src = getUserAvatar(draft.avatar); image.alt = ''; image.style.width = '100%'; image.style.maxHeight = '220px'; image.style.objectFit = 'cover'; art.append(image); host.append(art);
+
+    const avatarActions = el('div', 'sbp-avatar-actions');
+    const avatarCopy = el('small', '', 'Change the Persona picture without changing its identity or chat bindings.');
+    const avatarInput = el('input'); avatarInput.type = 'file'; avatarInput.accept = 'image/*'; avatarInput.hidden = true;
+    const avatarButton = el('button', 'sbp-avatar-button', 'Change picture'); avatarButton.type = 'button'; avatarButton.addEventListener('click', () => avatarInput.click());
+    avatarInput.addEventListener('change', () => {
+        const file = avatarInput.files?.[0] || null;
+        if (!file) return;
+        onAvatarFile(file);
+        const previewUrl = URL.createObjectURL(file);
+        image.src = previewUrl;
+        avatarCopy.textContent = `${file.name} will replace the picture when you Save.`;
+    });
+    avatarActions.append(avatarCopy, avatarButton, avatarInput); host.append(avatarActions);
+
     const fields = [
         ['name', 'Name'], ['title', 'Title'], ['category', 'Category'], ['aliases', 'Aliases / keywords'], ['tags', 'Tags'],
     ];
@@ -228,21 +303,40 @@ function details(draft) {
         const input = el('input'); input.type = 'checkbox'; input.checked = draft.metadata[key] === true; input.addEventListener('change', () => { draft.metadata[key] = input.checked; });
         const row = el('label', 'sbp-check'); row.append(input, el('span', '', title)); host.append(row);
     }
-    const native = draft.native || {};
-    const note = el('div', 'sbp-empty', `Injection stays compatible with SillyTavern: ${native.position === 9 ? 'disabled' : native.position === 4 ? `at depth ${native.depth ?? 2}` : 'normal prompt placement'}. Advanced placement and avatar replacement remain in native Persona management.`); host.append(note);
+
+    host.append(label('Persona placement', placementSelect(draft, rerender)));
+    if (Number(draft.native?.position ?? 0) === 4) {
+        const nativeGrid = el('div', 'sbp-native-grid');
+        const depth = el('input', 'sbp-input'); depth.type = 'number'; depth.min = '0'; depth.max = '9999'; depth.step = '1'; depth.value = String(draft.native?.depth ?? 2);
+        depth.addEventListener('input', () => { draft.native ||= {}; draft.native.depth = Number(depth.value); });
+        nativeGrid.append(label('Depth', depth), label('Role', roleSelect(draft)));
+        host.append(nativeGrid);
+    }
+    host.append(label('Persona Lorebook', lorebookSelect(draft)));
+    host.append(el('div', 'sbp-native-note', 'These are SillyTavern’s real Persona injection settings. SnowBunny saves them on the same Persona descriptor ST uses.'));
     return host;
 }
 
 async function openEditor(avatar) {
     const record = authoring()?.read?.(avatar); if (!record) return;
-    const draft = clone(record); let active = 'details';
+    const draft = clone(record); let active = 'details'; let pendingAvatarFile = null;
     const render = async tab => {
         if (tab) active = tab;
         const root = workspace(); const save = el('button', 'primary', 'Save'); save.type = 'button'; root.append(head(draft.name, () => void openLibrary(), [save]));
         const body = el('main', 'sbp-body'); root.append(body); const tabs = el('div', 'sbp-tabs');
         for (const [value, name] of [['details', 'Details'], ['writing', 'Writing'], ['preview', 'Preview']]) { const button = el('button', active === value ? 'active' : '', name); button.type = 'button'; button.addEventListener('click', () => void render(value)); tabs.append(button); }
-        body.append(tabs); body.append(active === 'details' ? details(draft) : active === 'writing' ? writing(draft, value => void render(value)) : preview(draft));
-        save.addEventListener('click', async () => { save.disabled = true; save.textContent = 'Saving…'; try { await authoring()?.save?.(draft); await openLibrary(); } catch (error) { console.error('[SnowBunny] Could not save Persona.', error); save.disabled = false; save.textContent = 'Try again'; } });
+        body.append(tabs); body.append(active === 'details' ? details(draft, value => void render(value), file => { pendingAvatarFile = file; }) : active === 'writing' ? writing(draft, value => void render(value)) : preview(draft));
+        save.addEventListener('click', async () => {
+            save.disabled = true; save.textContent = 'Saving…';
+            try {
+                await authoring()?.save?.(draft);
+                if (pendingAvatarFile) await overwritePersonaAvatar(draft.avatar, pendingAvatarFile);
+                await openLibrary();
+            } catch (error) {
+                console.error('[SnowBunny] Could not save Persona.', error);
+                save.disabled = false; save.textContent = 'Try again';
+            }
+        });
     };
     await render();
 }
