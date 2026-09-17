@@ -1,5 +1,6 @@
 import { initAgentStore } from './agent-store.js';
 import { initAgentsUi } from './agents-ui.js';
+import { initApiConnectionsUi } from './api-connections-ui.js';
 import { initCharacterAuthoring } from './character-authoring.js';
 import { initCharacterCodexLinks } from './character-codex-links.js';
 import { initCharacterLibrary } from './character-library.js';
@@ -169,6 +170,7 @@ export function init() {
     initGuidedGenerationsBridge();
     initRightPanelTabs();
     initLeftChatUtilities();
+    initApiConnectionsUi();
     initCharacterLibrary();
     initPersonaLibrary();
     initResponseConfig();
