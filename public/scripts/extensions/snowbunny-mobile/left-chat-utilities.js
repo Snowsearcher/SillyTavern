@@ -79,8 +79,7 @@ function enhance() {
     queued = false;
     const drawer = document.getElementById(LEFT_DRAWER_ID);
     const scroll = drawer?.querySelector('.snowbunny-shell-scroll');
-    if (!(scroll instanceof HTMLElement)) return;
-    document.getElementById(SECTION_ID)?.remove();
+    if (!(scroll instanceof HTMLElement) || document.getElementById(SECTION_ID)) return;
 
     const section = buildSection();
     const recent = scroll.querySelector(':scope > .snowbunny-shell-section');
