@@ -129,7 +129,16 @@ function ensureMore(menu, message) {
     return more;
 }
 
-function appendAction(more, action) {
+function closeMenu(menu) {
+    const close = menu.querySelector('.snowbunny-message-menu-close');
+    if (close instanceof HTMLElement) {
+        close.click();
+        return;
+    }
+    menu.remove();
+}
+
+function appendAction(more, menu, action) {
     const duplicate = [...more.querySelectorAll('.snowbunny-message-more-action')].some(button =>
         button instanceof HTMLElement && button.dataset[ACTION_DATASET_KEY] === action.key,
     );
@@ -148,7 +157,7 @@ function appendAction(more, action) {
     label.textContent = action.label;
     button.append(icon, label);
     button.addEventListener('click', () => {
-        document.getElementById(MENU_ID)?.remove();
+        closeMenu(menu);
         action.source.click();
     });
     more.append(button);
@@ -165,7 +174,7 @@ function syncMenu() {
     const more = ensureMore(menu, message);
     if (!(more instanceof HTMLElement)) return;
 
-    for (const action of actions) appendAction(more, action);
+    for (const action of actions) appendAction(more, menu, action);
     requestAnimationFrame(() => reposition(menu, message));
 }
 
