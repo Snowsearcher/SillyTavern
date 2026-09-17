@@ -2,6 +2,7 @@ const MENU_ID = 'snowbunny-message-menu';
 const SELECTED_MESSAGE_CLASS = 'snowbunny-message-selected';
 const MORE_CLASS = 'snowbunny-message-more';
 const ACTION_DATASET_KEY = 'snowbunnyNativeActionKey';
+const ACTION_SELECTOR = '.mes_button, .menu_button, button, [role="button"], [data-action], [data-message-action]';
 
 const PRIMARY_ACTION_CLASSES = new Set([
     'mes_copy',
@@ -51,7 +52,10 @@ function labelFor(element) {
 }
 
 function iconClassesFor(element) {
-    return [...element.classList].filter(name => name.startsWith('fa-'));
+    const own = [...element.classList].filter(name => name.startsWith('fa-'));
+    if (own.length) return own;
+    const nested = element.querySelector('i');
+    return nested ? [...nested.classList].filter(name => name.startsWith('fa-')) : [];
 }
 
 function actionKey(element, label) {
@@ -64,22 +68,31 @@ function actionKey(element, label) {
     return `label:${label.toLowerCase()}`;
 }
 
+function topInteractive(element, container) {
+    let parent = element.parentElement;
+    while (parent && parent !== container) {
+        if (parent.matches?.(ACTION_SELECTOR)) return false;
+        parent = parent.parentElement;
+    }
+    return true;
+}
+
 function nativeActions(message) {
     const actions = [];
     const seen = new Set();
 
     for (const container of message.querySelectorAll('.mes_buttons')) {
-        for (const child of container.children) {
-            if (!(child instanceof HTMLElement)) continue;
-            if (child.classList.contains('extraMesButtons') || child.classList.contains('extraMesButtonsHint')) continue;
-            if (!child.matches('.mes_button, .menu_button, button, [role="button"], [data-action], [data-message-action]')) continue;
-            if (handledByPrimaryMenu(child) || !visible(child)) continue;
+        for (const control of container.querySelectorAll(ACTION_SELECTOR)) {
+            if (!(control instanceof HTMLElement)) continue;
+            if (control.closest('.extraMesButtons') || control.closest('.extraMesButtonsHint')) continue;
+            if (!topInteractive(control, container)) continue;
+            if (handledByPrimaryMenu(control) || !visible(control)) continue;
 
-            const label = labelFor(child);
-            const key = actionKey(child, label);
+            const label = labelFor(control);
+            const key = actionKey(control, label);
             if (seen.has(key)) continue;
             seen.add(key);
-            actions.push({ source: child, label, key, iconClasses: iconClassesFor(child) });
+            actions.push({ source: control, label, key, iconClasses: iconClassesFor(control) });
         }
     }
 
@@ -149,13 +162,13 @@ function appendAction(more, menu, action) {
     button.className = 'snowbunny-message-more-action';
     button.dataset[ACTION_DATASET_KEY] = action.key;
 
-    const icon = document.createElement('i');
-    icon.className = action.iconClasses.length ? action.iconClasses.join(' ') : 'fa-solid fa-circle-dot';
-    icon.setAttribute('aria-hidden', 'true');
+    const mark = document.createElement('i');
+    mark.className = action.iconClasses.length ? action.iconClasses.join(' ') : 'fa-solid fa-circle-dot';
+    mark.setAttribute('aria-hidden', 'true');
 
     const label = document.createElement('span');
     label.textContent = action.label;
-    button.append(icon, label);
+    button.append(mark, label);
     button.addEventListener('click', () => {
         closeMenu(menu);
         action.source.click();
