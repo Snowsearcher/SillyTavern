@@ -18,6 +18,7 @@ import { initCustomAgentEngine } from './custom-agent-engine.js';
 import { initCustomAgentResultsUi } from './custom-agent-results-ui.js';
 import { initCustomAgentsUi } from './custom-agents-ui.js';
 import { initCyoaNative } from './cyoa-native.js';
+import { initEntityCreateUi } from './entity-create-ui.js';
 import { initExtensionManagerUi } from './extension-manager-ui.js';
 import { initExtensionToolsUi } from './extension-tools-ui.js';
 import { initGuidedGenerationsBridge } from './guided-generations-bridge.js';
@@ -175,6 +176,7 @@ export function init() {
     initApiConnectionsUi();
     initCharacterLibrary();
     initPersonaLibrary();
+    initEntityCreateUi();
     initResponseConfig();
     initShellActions();
     initMemberSelector();
