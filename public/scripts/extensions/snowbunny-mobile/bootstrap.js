@@ -5,6 +5,7 @@ import { initAppearanceUi } from './appearance-ui.js';
 import { initCharacterAuthoring } from './character-authoring.js';
 import { initCharacterCodexLinks } from './character-codex-links.js';
 import { initCharacterLibrary } from './character-library.js';
+import { initCharacterRenameUi } from './character-rename-ui.js';
 import { initChatStatistics } from './chat-statistics.js';
 import { initCodex } from './codex.js';
 import { initCodexLinkedCharacterUi } from './codex-linked-character-ui.js';
@@ -179,6 +180,7 @@ export function init() {
     initAppearanceUi();
     initSettingsHub();
     initCharacterLibrary();
+    initCharacterRenameUi();
     initPersonaLibrary();
     initEntityCreateUi();
     initResponseConfig();
