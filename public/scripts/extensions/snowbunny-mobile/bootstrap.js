@@ -24,6 +24,7 @@ import { initGuidedGenerationsBridge } from './guided-generations-bridge.js';
 import { init as initMobileShell } from './index.js';
 import { initLeftChatUtilities } from './left-chat-utilities.js';
 import { initMessageActionCompatibility } from './message-action-compatibility.js';
+import { initOlderMessageRetry } from './older-message-retry.js';
 import { initLorebookStore } from './lorebook-store.js';
 import { initLoreRetrieval } from './lore-retrieval.js';
 import { initLoreSemanticIndex } from './lore-semantic-index.js';
@@ -164,6 +165,7 @@ export function init() {
     initComposerLayout();
     initMobileShell();
     initMessageActionCompatibility();
+    initOlderMessageRetry();
     initSnowBunnyShell();
     initExtensionToolsUi();
     initExtensionManagerUi();
