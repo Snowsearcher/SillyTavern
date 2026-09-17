@@ -48,6 +48,7 @@ import { initMemberSelector } from './member-selector.js';
 import { initModelSelector } from './model-selector.js';
 import { initNarrator } from './narrator.js';
 import { initPersonaAuthoring } from './persona-authoring.js';
+import { initPersonaImportUi } from './persona-import-ui.js';
 import { initPersonaLibrary } from './persona-library.js';
 import { initPersonaSelector } from './persona-selector.js';
 import { initPhoneAgentsUi } from './phone-agents-ui.js';
@@ -185,6 +186,7 @@ export function init() {
     initCharacterRenameUi();
     initPersonaLibrary();
     initEntityCreateUi();
+    initPersonaImportUi();
     initResponseConfig();
     initShellActions();
     initMemberSelector();
