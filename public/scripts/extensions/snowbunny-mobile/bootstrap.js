@@ -3,6 +3,7 @@ import { initAgentsUi } from './agents-ui.js';
 import { initApiConnectionsUi } from './api-connections-ui.js';
 import { initAppearanceUi } from './appearance-ui.js';
 import { initCharacterAuthoring } from './character-authoring.js';
+import { initCharacterAvatarUi } from './character-avatar-ui.js';
 import { initCharacterCodexLinks } from './character-codex-links.js';
 import { initCharacterLibrary } from './character-library.js';
 import { initCharacterRenameUi } from './character-rename-ui.js';
@@ -184,6 +185,7 @@ export function init() {
     initSettingsHub();
     initCharacterLibrary();
     initCharacterRenameUi();
+    initCharacterAvatarUi();
     initPersonaLibrary();
     initEntityCreateUi();
     initPersonaImportUi();
