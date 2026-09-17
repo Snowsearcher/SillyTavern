@@ -76,6 +76,7 @@ import { initRegexNative } from './regex-native.js';
 import { initResponseConfig } from './response-config.js';
 import { initRightPanelTabs } from './right-panel-tabs.js';
 import { initScenario } from './scenario.js';
+import { initSettingsHub } from './settings-hub.js';
 import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
 import { initShellTransitions } from './shell-transitions.js';
@@ -176,6 +177,7 @@ export function init() {
     initLeftChatUtilities();
     initApiConnectionsUi();
     initAppearanceUi();
+    initSettingsHub();
     initCharacterLibrary();
     initPersonaLibrary();
     initEntityCreateUi();
