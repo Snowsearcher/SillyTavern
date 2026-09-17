@@ -20,6 +20,7 @@ import { initExtensionManagerUi } from './extension-manager-ui.js';
 import { initExtensionToolsUi } from './extension-tools-ui.js';
 import { initGuidedGenerationsBridge } from './guided-generations-bridge.js';
 import { init as initMobileShell } from './index.js';
+import { initLeftChatUtilities } from './left-chat-utilities.js';
 import { initMessageActionCompatibility } from './message-action-compatibility.js';
 import { initLorebookStore } from './lorebook-store.js';
 import { initLoreRetrieval } from './lore-retrieval.js';
@@ -166,6 +167,7 @@ export function init() {
     initExtensionManagerUi();
     initGuidedGenerationsBridge();
     initRightPanelTabs();
+    initLeftChatUtilities();
     initCharacterLibrary();
     initPersonaLibrary();
     initResponseConfig();
