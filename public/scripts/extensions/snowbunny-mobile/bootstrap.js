@@ -48,6 +48,7 @@ import {
 import { initMemberSelector } from './member-selector.js';
 import { initModelSelector } from './model-selector.js';
 import { initNarrator } from './narrator.js';
+import { initNavigationLayout } from './navigation-layout.js';
 import { initPersonaAuthoring } from './persona-authoring.js';
 import { initPersonaImportUi } from './persona-import-ui.js';
 import { initPersonaLibrary } from './persona-library.js';
@@ -217,5 +218,6 @@ export function init() {
     initCreateMenu();
     initCreateCodexBridge();
     initCreateLibraryBridge();
+    initNavigationLayout();
     initShellTransitions();
 }
