@@ -3,6 +3,8 @@ import { power_user } from '../../power-user.js';
 
 const SCHEMA_VERSION = 1;
 const MAX_FIELDS = 64;
+const VALID_POSITIONS = new Set([0, 2, 3, 4, 9]);
+const VALID_ROLES = new Set([0, 1, 2]);
 
 let initialized = false;
 
@@ -165,6 +167,25 @@ function applyCurrentContext(avatar, desc) {
     power_user.persona_description_lorebook = desc.lorebook ?? '';
 }
 
+function normalizedNative(record, old) {
+    const source = plainObject(record?.native) ? record.native : {};
+    const requestedPosition = Number(source.position);
+    const requestedDepth = Number(source.depth);
+    const requestedRole = Number(source.role);
+    return {
+        position: VALID_POSITIONS.has(requestedPosition)
+            ? requestedPosition
+            : VALID_POSITIONS.has(Number(old?.position)) ? Number(old.position) : 0,
+        depth: Number.isFinite(requestedDepth)
+            ? Math.max(0, Math.min(9999, Math.trunc(requestedDepth)))
+            : Number.isFinite(Number(old?.depth)) ? Number(old.depth) : 2,
+        role: VALID_ROLES.has(requestedRole)
+            ? requestedRole
+            : VALID_ROLES.has(Number(old?.role)) ? Number(old.role) : 0,
+        lorebook: String(source.lorebook ?? old?.lorebook ?? ''),
+    };
+}
+
 async function save(record) {
     if (!record?.avatar || !power_user.personas?.[record.avatar]) throw new Error('Persona no longer exists.');
     const avatar = String(record.avatar);
@@ -178,10 +199,15 @@ async function save(record) {
     meta.aliases = stringList(meta.aliases);
     meta.tags = stringList(meta.tags);
     const entityId = String(record.entityId || snowData(avatar).entityId || id('persona'));
+    const native = normalizedNative(record, old);
     const next = {
         ...clone(old),
         description: compatibilityDescription(authorDocument),
         title: String(meta.title || ''),
+        position: native.position,
+        depth: native.depth,
+        role: native.role,
+        lorebook: native.lorebook,
         snowbunny: {
             ...(plainObject(old.snowbunny) ? clone(old.snowbunny) : {}),
             schemaVersion: SCHEMA_VERSION,
