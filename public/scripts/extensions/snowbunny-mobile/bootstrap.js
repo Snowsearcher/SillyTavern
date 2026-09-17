@@ -16,6 +16,7 @@ import { initCustomAgentEngine } from './custom-agent-engine.js';
 import { initCustomAgentResultsUi } from './custom-agent-results-ui.js';
 import { initCustomAgentsUi } from './custom-agents-ui.js';
 import { initCyoaNative } from './cyoa-native.js';
+import { initExtensionToolsUi } from './extension-tools-ui.js';
 import { init as initMobileShell } from './index.js';
 import { initMessageActionCompatibility } from './message-action-compatibility.js';
 import { initLorebookStore } from './lorebook-store.js';
@@ -158,6 +159,7 @@ export function init() {
     initMobileShell();
     initMessageActionCompatibility();
     initSnowBunnyShell();
+    initExtensionToolsUi();
     initCharacterLibrary();
     initPersonaLibrary();
     initResponseConfig();
