@@ -67,6 +67,7 @@ import { initRecentChats } from './recent-chats.js';
 import { initRegexCompatibilityGuard } from './regex-compat-guard.js';
 import { initRegexNative } from './regex-native.js';
 import { initResponseConfig } from './response-config.js';
+import { initRightPanelTabs } from './right-panel-tabs.js';
 import { initScenario } from './scenario.js';
 import { initSnowBunnyShell } from './shell.js';
 import { initShellActions } from './shell-actions.js';
@@ -162,6 +163,7 @@ export function init() {
     initSnowBunnyShell();
     initExtensionToolsUi();
     initGuidedGenerationsBridge();
+    initRightPanelTabs();
     initCharacterLibrary();
     initPersonaLibrary();
     initResponseConfig();
