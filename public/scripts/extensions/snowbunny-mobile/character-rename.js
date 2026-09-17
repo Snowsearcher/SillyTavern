@@ -155,8 +155,11 @@ export async function renameCharacterForSnowBunny(oldAvatar, newName, entityId =
     if (currentCharacterAvatar() === oldAvatar) {
         const ok = await renameCurrentCharacter(newName, { silent: true, renameChats: false });
         if (!ok) throw new Error('SillyTavern could not rename the current Character.');
-        const renamed = characters.find(character => String(character?.name || '').trim() === newName);
-        newAvatar = String(renamed?.avatar || currentCharacterAvatar() || '');
+        newAvatar = currentCharacterAvatar();
+        if (!newAvatar || newAvatar === oldAvatar) {
+            const renamed = characters.find(character => String(character?.name || '').trim() === newName && String(character?.avatar || '') !== oldAvatar);
+            newAvatar = String(renamed?.avatar || '');
+        }
     } else {
         newAvatar = await renameNonCurrentCharacter(oldAvatar, newName);
     }
